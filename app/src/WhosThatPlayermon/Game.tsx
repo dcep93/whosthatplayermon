@@ -7,7 +7,7 @@ type Entry = {
   team: string;
   position: string;
   proBowlProb: number;
-  imgSrc: string;
+  imgSrc?: string;
 };
 const data: Entry[] = rawData;
 
