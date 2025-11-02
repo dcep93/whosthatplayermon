@@ -1,26 +1,34 @@
 import { useState } from "react";
-import fetchPic, { type PicData } from "./fetchPic";
-import type { User } from "./useAuth";
 
-export default function Game(props: { user: User }) {
-  const [picData, setPicData] = useState<PicData | null>(null);
+import rawData from "./data.json";
+
+type Entry = {
+  playerName: string;
+  team: string;
+  position: string;
+  proBowlProb: number;
+  imgSrc: string;
+};
+const data: Entry[] = rawData;
+
+export default function Game() {
+  const [entry, setEntry] = useState<Entry | null>(null);
   return (
     <div>
-      <pre>{JSON.stringify(props.user, null, 2)}</pre>
-      {!picData ? (
+      {!entry ? (
         <button
           onClick={() =>
             Promise.resolve()
-              .then(() => fetchPic(props.user))
-              .then((_picData) => setPicData(_picData))
+              .then(() => data[Math.floor(Math.random() * data.length)])
+              .then((_entry) => setEntry(_entry))
           }
         >
           fetch
         </button>
       ) : (
         <div>
-          <div>{picData.answer}</div>
-          <img src={picData.src} />
+          <pre>{JSON.stringify(entry, null, 2)}</pre>
+          <img src={entry.imgSrc} />
         </div>
       )}
     </div>
