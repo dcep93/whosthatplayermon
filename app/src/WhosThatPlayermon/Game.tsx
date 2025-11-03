@@ -7,7 +7,7 @@ import {
   Text,
   Title,
 } from "@mantine/core";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import rawData from "./data.json";
 
@@ -58,17 +58,7 @@ export default function Game() {
     return matchesTeam && matchesPosition && matchesRating;
   });
 
-  useEffect(() => {
-    if (entry && !filteredData.includes(entry)) {
-      setEntry(null);
-    }
-  }, [entry, filteredData]);
-
   const handleFetch = () => {
-    if (filteredData.length === 0) {
-      setEntry(null);
-      return;
-    }
     const index = Math.floor(Math.random() * filteredData.length);
     setEntry(filteredData[index] ?? null);
   };
