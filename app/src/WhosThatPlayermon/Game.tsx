@@ -7,11 +7,11 @@ import {
   Text,
   Title,
 } from "@mantine/core";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import rawData from "./data.json";
 
-type Entry = {
+export type Entry = {
   playerName: string;
   team: string;
   position: string;
@@ -45,6 +45,7 @@ export default function Game() {
     MIN_RATING,
     MAX_RATING,
   ]);
+  const usedPlayersByFilter = useRef<Map<string, Set<string>>>(new Map());
 
   const filteredData = data.filter((candidate) => {
     const matchesTeam =
@@ -59,8 +60,44 @@ export default function Game() {
   });
 
   const handleFetch = () => {
-    const index = Math.floor(Math.random() * filteredData.length);
-    setEntry(filteredData[index] ?? null);
+    if (!hasMatches) {
+      setEntry(null);
+      return;
+    }
+
+    const filterKey = JSON.stringify({
+      teams: [...selectedTeams].sort(),
+      positions: [...selectedPositions].sort(),
+      ratingRange,
+    });
+
+    let usedPlayers = usedPlayersByFilter.current.get(filterKey);
+    if (!usedPlayers) {
+      usedPlayers = new Set<string>();
+      usedPlayersByFilter.current.set(filterKey, usedPlayers);
+    }
+
+    let availablePlayers = filteredData.filter(
+      (candidate) => !usedPlayers!.has(candidate.playerName)
+    );
+
+    if (availablePlayers.length === 0) {
+      usedPlayers.clear();
+      availablePlayers = filteredData;
+    }
+
+    if (availablePlayers.length === 0) {
+      setEntry(null);
+      return;
+    }
+
+    const index = Math.floor(Math.random() * availablePlayers.length);
+    const nextEntry = availablePlayers[index] ?? null;
+    setEntry(nextEntry);
+
+    if (nextEntry) {
+      usedPlayers.add(nextEntry.playerName);
+    }
   };
 
   const handleRatingChange = (value: [number, number]) => {
@@ -123,18 +160,7 @@ export default function Game() {
         </Button>
       </Group>
 
-      {!entry ? null : (
-        <Stack gap="sm">
-          <pre>{JSON.stringify(entry, null, 2)}</pre>
-          {entry.imgSrc ? (
-            <img
-              alt={entry.playerName}
-              src={entry.imgSrc}
-              style={{ maxWidth: "300px" }}
-            />
-          ) : null}
-        </Stack>
-      )}
+      {!entry ? null : <Question entry={entry} />}
     </Stack>
   );
 }
