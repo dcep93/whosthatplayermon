@@ -10,6 +10,7 @@ import {
 import { useRef, useState } from "react";
 
 import rawData from "./data.json";
+import Question from "./Question";
 
 export type Entry = {
   playerName: string;
