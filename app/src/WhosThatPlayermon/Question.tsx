@@ -31,8 +31,11 @@ export default function Question(props: { entry: Entry }) {
       updateIsSharpening(false);
     }
   }, [duration, isSharpening]);
-  const blur = Math.floor(
-    (IMG_WIDTH_PX * Math.max(0, MAX_DURATION_MS - duration)) / MAX_DURATION_MS
+  const blur = Math.pow(
+    (IMG_WIDTH_PX * Math.max(0, MAX_DURATION_MS - duration)) /
+      MAX_DURATION_MS /
+      10,
+    0.5
   );
   return (
     <Stack gap="sm">
@@ -43,7 +46,9 @@ export default function Question(props: { entry: Entry }) {
           2
         )}
       </pre>
-      <div>{duration}</div>
+      <div>
+        {duration} {blur}
+      </div>
       {isSharpening ? (
         <button onClick={() => updateIsSharpening(false)}>stop</button>
       ) : (
