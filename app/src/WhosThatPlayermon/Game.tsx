@@ -28,6 +28,20 @@ const MAX_RATING = data.length
     )
   : 100;
 
+const getTodayHash = () => {
+  const today = new Date();
+  const dateKey = today.toISOString().slice(0, 10);
+
+  let hash = 0;
+  for (let index = 0; index < dateKey.length; index += 1) {
+    const characterCode = dateKey.charCodeAt(index);
+    hash = (hash << 5) - hash + characterCode;
+    hash |= 0;
+  }
+
+  return Math.abs(hash);
+};
+
 export default function Game() {
   const [entry, setEntry] = useState<Entry | null>(null);
   const [selectedTeams, setSelectedTeams] = useState<string[]>([]);
@@ -68,22 +82,31 @@ export default function Game() {
       usedPlayersByFilter.current.set(filterKey, usedPlayers);
     }
 
-    let availablePlayers = filteredData.filter(
-      (candidate) => !usedPlayers!.has(candidate.playerName)
-    );
-
-    if (availablePlayers.length === 0) {
-      usedPlayers.clear();
-      availablePlayers = filteredData;
-    }
-
-    if (availablePlayers.length === 0) {
+    if (filteredData.length === 0) {
       setEntry(null);
       return;
     }
 
-    const index = Math.floor(Math.random() * availablePlayers.length);
-    const nextEntry = availablePlayers[index] ?? null;
+    const todayHash = getTodayHash();
+    const startIndex = todayHash % filteredData.length;
+
+    let nextEntry: Entry | null = null;
+
+    for (let offset = 0; offset < filteredData.length; offset += 1) {
+      const candidateIndex = (startIndex + offset) % filteredData.length;
+      const candidate = filteredData[candidateIndex];
+
+      if (!usedPlayers.has(candidate.playerName)) {
+        nextEntry = candidate;
+        break;
+      }
+    }
+
+    if (!nextEntry) {
+      usedPlayers.clear();
+      nextEntry = filteredData[startIndex] ?? null;
+    }
+
     setEntry(nextEntry);
 
     if (nextEntry) {
