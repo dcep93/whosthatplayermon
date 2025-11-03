@@ -113,13 +113,16 @@ export default function Game() {
             aria-label="Player rating range"
             min={MIN_RATING}
             max={MAX_RATING}
+            minRange={1}
             value={ratingRange}
             onChange={handleRatingChange}
             label={(value) => value.toString()}
             step={1}
           />
           <Text size="sm" c="dimmed">
-            Showing ratings between {ratingRange[0]} and {ratingRange[1]}.
+            {hasMatches
+              ? `${filteredData.length} players`
+              : "No players found matching the selected filters."}
           </Text>
         </Stack>
       </Stack>
@@ -128,11 +131,6 @@ export default function Game() {
         <Button disabled={!hasMatches} onClick={handleFetch}>
           Fetch player
         </Button>
-        <Text size="sm" c={hasMatches ? undefined : "red"} style={{ flex: 1 }}>
-          {hasMatches
-            ? `${filteredData.length} players match the current filters.`
-            : "No players found matching the selected filters."}
-        </Text>
       </Group>
 
       {!entry ? null : (
