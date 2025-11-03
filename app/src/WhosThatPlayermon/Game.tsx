@@ -15,12 +15,6 @@ export default function Game() {
   const [entry, setEntry] = useState<Entry | null>(null);
   return (
     <div>
-      {!entry ? null : (
-        <div>
-          <pre>{JSON.stringify(entry, null, 2)}</pre>
-          <img src={entry.imgSrc} />
-        </div>
-      )}
       <button
         onClick={() =>
           Promise.resolve()
@@ -30,6 +24,12 @@ export default function Game() {
       >
         fetch
       </button>
+      {!entry ? null : (
+        <div>
+          <pre>{JSON.stringify(entry, null, 2)}</pre>
+          <img src={entry.imgSrc} />
+        </div>
+      )}
     </div>
   );
 }

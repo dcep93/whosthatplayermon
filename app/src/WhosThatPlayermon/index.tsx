@@ -1,5 +1,9 @@
 import Game from "./Game";
 
 export default function WhosThatPlayermon() {
-  return <Game />;
+  return (
+    <div style={{ height: "100vh" }}>
+      <Game />
+    </div>
+  );
 }
