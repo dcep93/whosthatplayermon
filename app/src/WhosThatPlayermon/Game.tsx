@@ -6,7 +6,7 @@ type Entry = {
   playerName: string;
   team: string;
   position: string;
-  proBowlProb: number;
+  overallMaddenRating: number;
   imgSrc?: string;
 };
 const data: Entry[] = rawData;
