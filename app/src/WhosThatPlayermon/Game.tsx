@@ -8,18 +8,8 @@ import {
   Title,
 } from "@mantine/core";
 import { useRef, useState } from "react";
-
-import rawData from "./data.json";
+import { data, type Entry } from "./Data";
 import Question from "./Question";
-
-export type Entry = {
-  playerName: string;
-  team: string;
-  position: string;
-  overallMaddenRating: number;
-  imgSrc?: string;
-};
-const data: Entry[] = rawData;
 
 const TEAM_OPTIONS = Array.from(new Set(data.map(({ team }) => team))).sort();
 const POSITION_OPTIONS = Array.from(

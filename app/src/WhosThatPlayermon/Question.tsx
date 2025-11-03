@@ -1,6 +1,6 @@
 import { Stack } from "@mantine/core";
 import { useMemo, useState } from "react";
-import type { Entry } from "./Game";
+import type { Entry } from "./Data";
 
 const IMG_WIDTH_PX = 300;
 const MAX_DURATION_MS = 5000;
