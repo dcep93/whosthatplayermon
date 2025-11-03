@@ -110,7 +110,7 @@ export default function Game() {
   const hasMatches = filteredData.length > 0;
 
   return (
-    <Stack gap="lg" p="md">
+    <Group gap="lg" p="md" align="flex-start">
       <Stack gap="md">
         <Title order={2}>Filters</Title>
         <MultiSelect
@@ -153,15 +153,12 @@ export default function Game() {
               : "No players found matching the selected filters."}
           </Text>
         </Stack>
-      </Stack>
-
-      <Group gap="md" align="flex-start">
         <Button disabled={!hasMatches} onClick={handleFetch}>
           Fetch player
         </Button>
-      </Group>
+      </Stack>
 
       {!entry ? null : <Question entry={entry} />}
-    </Stack>
+    </Group>
   );
 }
