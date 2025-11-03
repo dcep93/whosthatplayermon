@@ -1,14 +1,27 @@
-import { Stack } from "@mantine/core";
+import { Select, Stack } from "@mantine/core";
 import { useEffect, useState } from "react";
-import type { Entry } from "./Data";
+import { data, type Entry } from "./Data";
 
 const IMG_WIDTH_PX = 300;
 const MAX_DURATION_MS = 5000;
 const INTERVAL_MS = 10;
 
+const PLAYER_NAME_OPTIONS = Array.from(
+  new Set(data.map(({ playerName }) => playerName))
+)
+  .sort((a, b) => a.localeCompare(b))
+  .map((playerName) => ({ value: playerName, label: playerName }));
+
 export default function Question(props: { entry: Entry }) {
   const [duration, updateDuration] = useState(0);
   const [isSharpening, updateIsSharpening] = useState(false);
+  const [guess, setGuess] = useState<string | null>(null);
+
+  useEffect(() => {
+    updateDuration(0);
+    updateIsSharpening(false);
+    setGuess(null);
+  }, [props.entry]);
 
   useEffect(() => {
     if (!isSharpening) {
@@ -37,6 +50,31 @@ export default function Question(props: { entry: Entry }) {
       10,
     0.5
   );
+  const hasReachedMax = duration >= MAX_DURATION_MS;
+  const canResume = duration > 0 && !hasReachedMax;
+  const buttonLabel = isSharpening ? "stop" : canResume ? "resume" : "start";
+  const handleStart = () => {
+    updateDuration(0);
+    updateIsSharpening(true);
+  };
+  const handleResume = () => {
+    updateIsSharpening(true);
+  };
+  const handleStop = () => {
+    updateIsSharpening(false);
+  };
+  const handleButtonClick = () => {
+    if (isSharpening) {
+      handleStop();
+      return;
+    }
+
+    if (canResume) {
+      handleResume();
+    } else {
+      handleStart();
+    }
+  };
   return (
     <Stack gap="sm">
       <pre>
@@ -49,18 +87,12 @@ export default function Question(props: { entry: Entry }) {
       <div>
         {duration} {blur}
       </div>
-      {isSharpening ? (
-        <button onClick={() => updateIsSharpening(false)}>stop</button>
-      ) : (
-        <button
-          onClick={() => {
-            updateDuration(0);
-            updateIsSharpening(true);
-          }}
-        >
-          start
-        </button>
-      )}
+      <button
+        onClick={handleButtonClick}
+        disabled={hasReachedMax && !isSharpening}
+      >
+        {buttonLabel}
+      </button>
       {props.entry.imgSrc ? (
         <img
           alt={props.entry.playerName}
@@ -75,6 +107,17 @@ export default function Question(props: { entry: Entry }) {
           // Keeps edges from bleeding during blur:
           decoding="async"
           loading="lazy"
+        />
+      ) : null}
+      {!isSharpening ? (
+        <Select
+          label="Your answer"
+          placeholder="Select a player"
+          data={PLAYER_NAME_OPTIONS}
+          searchable
+          value={guess}
+          onChange={setGuess}
+          nothingFoundMessage="No matching players"
         />
       ) : null}
     </Stack>
