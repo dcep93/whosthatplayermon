@@ -1,0 +1,30 @@
+const apiKey = "123"; // replace with your free key or premium key
+const playerName = encodeURIComponent("Jake Ferguson");
+const url = `https://www.thesportsdb.com/api/v1/json/${apiKey}/searchplayers.php?p=${playerName}`;
+
+fetch(url)
+  .then((res) => {
+    if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+    return res.json();
+  })
+  .then((data) => {
+    if (!data.player || data.player.length === 0) {
+      throw new Error("No player found");
+    }
+    const player = data.player[0];
+    // Example image fields: strThumb, strCutout, strRender, strFanart1…4
+    console.log("Thumbnail:", player.strThumb);
+    console.log("Cut-out:", player.strCutout);
+    console.log("Fanart1:", player.strFanart1);
+    console.log("Fanart2:", player.strFanart2);
+    // Filter for “action shot” if you have naming conventions or tags
+    // e.g.
+    const actionShots = [
+      player.strFanart1,
+      player.strFanart2,
+      player.strFanart3,
+      player.strFanart4,
+    ].filter((url) => url && url.includes("/fanart/"));
+    console.log("Action shots:", actionShots);
+  })
+  .catch((err) => console.error("Error fetching player data:", err));

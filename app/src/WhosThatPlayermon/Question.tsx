@@ -13,6 +13,7 @@ const PLAYER_NAME_OPTIONS = Array.from(
   .map((playerName) => ({ value: playerName, label: playerName }));
 
 export default function Question(props: { entry: Entry }) {
+  const [imgSrc, updateImgSrc] = useState<string | null>(null);
   const [duration, updateDuration] = useState(0);
   const [isSharpening, updateIsSharpening] = useState(false);
   const [guess, setGuess] = useState<string | null>(null);
@@ -81,42 +82,42 @@ export default function Question(props: { entry: Entry }) {
           2
         )}
       </pre>
-      <div>
-        {duration} {blur}
-      </div>
-      <button
-        onClick={handleButtonClick}
-        disabled={hasReachedMax && !isSharpening}
-      >
-        {buttonLabel}
-      </button>
-      {props.entry.imgSrc ? (
-        <img
-          alt={props.entry.playerName}
-          src={props.entry.imgSrc}
-          style={{
-            width: `${IMG_WIDTH_PX}px`,
-            filter: `blur(${blur}px)`,
-            // small perf wins:
-            willChange: "filter",
-            transform: "translateZ(0)", // promote to its own layer on many GPUs
-          }}
-          // Keeps edges from bleeding during blur:
-          decoding="async"
-          loading="lazy"
-        />
-      ) : null}
-      {!isSharpening ? (
-        <Select
-          label="Your answer"
-          placeholder="Select a player"
-          data={PLAYER_NAME_OPTIONS}
-          searchable
-          value={guess}
-          onChange={setGuess}
-          nothingFoundMessage="No matching players"
-        />
-      ) : null}
+
+      {!imgSrc ? null : (
+        <Stack>
+          <button
+            onClick={handleButtonClick}
+            disabled={hasReachedMax && !isSharpening}
+          >
+            {buttonLabel}
+          </button>
+          <img
+            alt={props.entry.playerName}
+            src={imgSrc}
+            style={{
+              width: `${IMG_WIDTH_PX}px`,
+              filter: `blur(${blur}px)`,
+              // small perf wins:
+              willChange: "filter",
+              transform: "translateZ(0)", // promote to its own layer on many GPUs
+            }}
+            // Keeps edges from bleeding during blur:
+            decoding="async"
+            loading="lazy"
+          />
+          {isSharpening ? null : (
+            <Select
+              label="Your answer"
+              placeholder="Select a player"
+              data={PLAYER_NAME_OPTIONS}
+              searchable
+              value={guess}
+              onChange={setGuess}
+              nothingFoundMessage="No matching players"
+            />
+          )}
+        </Stack>
+      )}
     </Stack>
   );
 }

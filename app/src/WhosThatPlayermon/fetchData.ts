@@ -52,10 +52,5 @@ while True:
 
 json.dump(entries, sys.stdout, indent=2)
 PYCODE
-
------
-
-
-
 `;
 export default fetchData;

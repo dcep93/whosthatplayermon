@@ -5,6 +5,5 @@ export type Entry = {
   team: string;
   position: string;
   overallMaddenRating: number;
-  imgSrc?: string;
 };
 export const data: Entry[] = rawData;
