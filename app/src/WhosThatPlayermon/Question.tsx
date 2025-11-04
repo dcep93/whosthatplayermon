@@ -15,6 +15,7 @@ const PLAYER_NAME_OPTIONS = Array.from(
 
 export default function Question(props: { entry: Entry }) {
   const [imgSrc, updateImgSrc] = useState<string | null>(null);
+  const [imgLoaded, updateImgLoaded] = useState(false);
   const [durationMs, updateDuration] = useState(0);
   const [isSharpening, updateIsSharpening] = useState(false);
   const [guess, setGuess] = useState<string | null>(null);
@@ -22,14 +23,8 @@ export default function Question(props: { entry: Entry }) {
   useEffect(() => void fetchPic(props.entry).then(updateImgSrc), [props.entry]);
 
   useEffect(() => {
-    updateDuration(0);
-    updateIsSharpening(false);
-    setGuess(null);
-  }, [props.entry]);
-
-  useEffect(() => {
     if (!isSharpening) {
-      return undefined;
+      return;
     }
 
     const intervalId = window.setInterval(() => {
@@ -103,7 +98,8 @@ export default function Question(props: { entry: Entry }) {
         <Stack>
           <button onClick={handleButtonClick}>{buttonLabel}</button>
           <img
-            alt={props.entry.playerName}
+            onLoad={() => updateImgLoaded(true)}
+            alt={"no img found"}
             src={imgSrc}
             style={{
               width: `${IMG_WIDTH_PX}px`,
@@ -116,7 +112,7 @@ export default function Question(props: { entry: Entry }) {
             decoding="async"
             loading="lazy"
           />
-          {isSharpening ? null : (
+          {!imgLoaded || isSharpening ? null : (
             <Select
               label="Your answer"
               placeholder="Select a player"

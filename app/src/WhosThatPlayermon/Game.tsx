@@ -43,7 +43,12 @@ const getTodayHash = () => {
 };
 
 export default function Game() {
-  const [entry, setEntry] = useState<Entry | null>(null);
+  const [questionKey, setQuestionKey] = useState(0);
+  const [entry, _setEntry] = useState<Entry | null>(null);
+  const setEntry = (_entry: typeof entry) => {
+    _setEntry(_entry);
+    setQuestionKey(Date.now());
+  };
   const [selectedTeams, setSelectedTeams] = useState<string[]>([]);
   const [selectedPositions, setSelectedPositions] = useState<string[]>([]);
   const [ratingRange, setRatingRange] = useState<[number, number]>([
@@ -184,7 +189,7 @@ export default function Game() {
         </Button>
       </Stack>
 
-      {!entry ? null : <Question entry={entry} />}
+      {!entry ? null : <Question entry={entry} key={questionKey} />}
     </Group>
   );
 }
