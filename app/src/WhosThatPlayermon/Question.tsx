@@ -85,7 +85,7 @@ export default function Question(props: { entry: Entry }) {
         {JSON.stringify(
           {
             ...props.entry,
-            playerName: undefined,
+            // playerName: undefined,
             ...(!imgLoaded ? {} : { durationMs, MAX_DURATION_MS }),
           },
           null,

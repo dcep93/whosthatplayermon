@@ -11,6 +11,8 @@ import { useRef, useState, useTransition } from "react";
 import { data, type Entry } from "./Data";
 import Question from "./Question";
 
+var sessionLoops = 0;
+
 const TEAM_OPTIONS = Array.from(new Set(data.map(({ team }) => team))).sort();
 const POSITION_OPTIONS = Array.from(
   new Set(data.map(({ position }) => position))
@@ -28,18 +30,36 @@ const MAX_RATING = data.length
     )
   : 100;
 
-const getTodayHash = () => {
+const shuffle = (data: Entry[]) => {
   const today = new Date();
   const dateKey = today.toISOString().slice(0, 10);
+  const hashKey = `${dateKey}-${sessionLoops}`;
 
+  // Simple string hash (same as your base)
   let hash = 0;
-  for (let index = 0; index < dateKey.length; index += 1) {
-    const characterCode = dateKey.charCodeAt(index);
-    hash = (hash << 5) - hash + characterCode;
+  for (let i = 0; i < hashKey.length; i++) {
+    const chr = hashKey.charCodeAt(i);
+    hash = (hash << 5) - hash + chr;
     hash |= 0;
   }
 
-  return Math.abs(hash);
+  // Convert to positive seed
+  let seed = hash >>> 0;
+
+  // Deterministic pseudo-random number generator (LCG)
+  const random = () => {
+    seed = (seed * 1664525 + 1013904223) % 4294967296;
+    return seed / 4294967296;
+  };
+
+  // Fisher–Yates shuffle using our deterministic PRNG
+  const arr = data.slice();
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+
+  return arr;
 };
 
 export default function Game() {
@@ -97,24 +117,16 @@ export default function Game() {
       return;
     }
 
-    const todayHash = getTodayHash();
-    const startIndex = todayHash % filteredData.length;
+    const shuffledData = shuffle(filteredData);
 
-    let nextEntry: Entry | null = null;
-
-    for (let offset = 0; offset < filteredData.length; offset += 1) {
-      const candidateIndex = (startIndex + offset) % filteredData.length;
-      const candidate = filteredData[candidateIndex];
-
-      if (!usedPlayers.has(candidate.playerName)) {
-        nextEntry = candidate;
-        break;
-      }
-    }
+    let nextEntry = shuffledData.find(
+      (candidate) => !usedPlayers.has(candidate.playerName)
+    );
 
     if (!nextEntry) {
       usedPlayers.clear();
-      nextEntry = filteredData[startIndex] ?? null;
+      sessionLoops++;
+      nextEntry = shuffle(filteredData)[0] ?? null;
     }
 
     setEntry(nextEntry);
