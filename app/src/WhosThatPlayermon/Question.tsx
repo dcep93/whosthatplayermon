@@ -54,10 +54,10 @@ export default function Question(props: { entry: Entry }) {
   const canResume = durationMs < MAX_DURATION_MS;
   const buttonLabel = isSharpening
     ? "stop"
-    : canResume
-    ? "resume"
     : durationMs === 0
     ? "start"
+    : canResume
+    ? "resume"
     : "restart";
   const handleRestart = () => {
     updateDuration(0);
@@ -76,13 +76,10 @@ export default function Question(props: { entry: Entry }) {
   const handleButtonClick = () => {
     if (isSharpening) {
       handleStop();
-      return;
-    }
-
-    if (canResume) {
-      handleResume();
     } else if (durationMs === 0) {
       handleStart();
+    } else if (canResume) {
+      handleResume();
     } else {
       handleRestart();
     }
