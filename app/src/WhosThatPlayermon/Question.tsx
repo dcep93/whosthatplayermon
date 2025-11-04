@@ -1,6 +1,7 @@
 import { Select, Stack } from "@mantine/core";
 import { useEffect, useState } from "react";
 import { data, type Entry } from "./Data";
+import fetchPic from "./fetchPic";
 
 const IMG_WIDTH_PX = 300;
 const MAX_DURATION_MS = 5000;
@@ -14,9 +15,11 @@ const PLAYER_NAME_OPTIONS = Array.from(
 
 export default function Question(props: { entry: Entry }) {
   const [imgSrc, updateImgSrc] = useState<string | null>(null);
-  const [duration, updateDuration] = useState(0);
+  const [durationMs, updateDuration] = useState(0);
   const [isSharpening, updateIsSharpening] = useState(false);
   const [guess, setGuess] = useState<string | null>(null);
+
+  useEffect(() => void fetchPic(props.entry).then(updateImgSrc), [props.entry]);
 
   useEffect(() => {
     updateDuration(0);
@@ -41,16 +44,25 @@ export default function Question(props: { entry: Entry }) {
       return;
     }
 
-    if (duration >= MAX_DURATION_MS) {
+    if (durationMs >= MAX_DURATION_MS) {
       updateIsSharpening(false);
     }
-  }, [duration, isSharpening]);
+  }, [durationMs, isSharpening]);
   const blur =
-    Math.pow(Math.max(0, MAX_DURATION_MS - duration) / MAX_DURATION_MS, 2.5) *
+    Math.pow(Math.max(0, MAX_DURATION_MS - durationMs) / MAX_DURATION_MS, 2.5) *
     15;
-  const hasReachedMax = duration >= MAX_DURATION_MS;
-  const canResume = duration > 0 && !hasReachedMax;
-  const buttonLabel = isSharpening ? "stop" : canResume ? "resume" : "start";
+  const canResume = durationMs < MAX_DURATION_MS;
+  const buttonLabel = isSharpening
+    ? "stop"
+    : canResume
+    ? "resume"
+    : durationMs === 0
+    ? "start"
+    : "restart";
+  const handleRestart = () => {
+    updateDuration(0);
+    updateIsSharpening(false);
+  };
   const handleStart = () => {
     updateDuration(0);
     updateIsSharpening(true);
@@ -69,15 +81,22 @@ export default function Question(props: { entry: Entry }) {
 
     if (canResume) {
       handleResume();
-    } else {
+    } else if (durationMs === 0) {
       handleStart();
+    } else {
+      handleRestart();
     }
   };
   return (
     <Stack gap="sm">
       <pre>
         {JSON.stringify(
-          { ...props.entry, playerName: undefined, imgSrc: undefined },
+          {
+            ...props.entry,
+            playerName: undefined,
+            durationMs,
+            MAX_DURATION_MS,
+          },
           null,
           2
         )}
@@ -85,12 +104,7 @@ export default function Question(props: { entry: Entry }) {
 
       {!imgSrc ? null : (
         <Stack>
-          <button
-            onClick={handleButtonClick}
-            disabled={hasReachedMax && !isSharpening}
-          >
-            {buttonLabel}
-          </button>
+          <button onClick={handleButtonClick}>{buttonLabel}</button>
           <img
             alt={props.entry.playerName}
             src={imgSrc}
