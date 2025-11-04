@@ -19,7 +19,7 @@ export default function fetchPic(entry: Entry) {
         player.strThumb ||
         player.strCutout ||
         (Object.values(player) as string[]).find((s) =>
-          s.startsWith("https://")
+          s?.startsWith("https://")
         )
       );
     });

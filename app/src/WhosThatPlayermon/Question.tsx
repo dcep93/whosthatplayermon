@@ -86,8 +86,7 @@ export default function Question(props: { entry: Entry }) {
           {
             ...props.entry,
             playerName: undefined,
-            durationMs,
-            MAX_DURATION_MS,
+            ...(!imgLoaded ? {} : { durationMs, MAX_DURATION_MS }),
           },
           null,
           2
