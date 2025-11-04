@@ -7,7 +7,7 @@ import {
   Text,
   Title,
 } from "@mantine/core";
-import { useRef, useState } from "react";
+import { useRef, useState, useTransition } from "react";
 import { data, type Entry } from "./Data";
 import Question from "./Question";
 
@@ -50,6 +50,11 @@ export default function Game() {
     MIN_RATING,
     MAX_RATING,
   ]);
+  const [sliderRange, setSliderRange] = useState<[number, number]>([
+    MIN_RATING,
+    MAX_RATING,
+  ]);
+  const [, startTransition] = useTransition();
   const usedPlayersByFilter = useRef<Map<string, Set<string>>>(new Map());
 
   const filteredData = data.filter((candidate) => {
@@ -117,7 +122,15 @@ export default function Game() {
   const handleRatingChange = (value: [number, number]) => {
     const nextMin = Math.max(MIN_RATING, Math.min(value[0], MAX_RATING));
     const nextMax = Math.max(MIN_RATING, Math.min(value[1], MAX_RATING));
-    setRatingRange([Math.min(nextMin, nextMax), Math.max(nextMin, nextMax)]);
+    const nextRange: [number, number] = [
+      Math.min(nextMin, nextMax),
+      Math.max(nextMin, nextMax),
+    ];
+
+    setSliderRange(nextRange);
+    startTransition(() => {
+      setRatingRange(nextRange);
+    });
   };
 
   const hasMatches = filteredData.length > 0;
@@ -155,7 +168,7 @@ export default function Game() {
             min={MIN_RATING}
             max={MAX_RATING}
             minRange={1}
-            value={ratingRange}
+            value={sliderRange}
             onChange={handleRatingChange}
             label={(value) => value.toString()}
             step={1}

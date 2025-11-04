@@ -44,12 +44,9 @@ export default function Question(props: { entry: Entry }) {
       updateIsSharpening(false);
     }
   }, [duration, isSharpening]);
-  const blur = Math.pow(
-    (IMG_WIDTH_PX * Math.max(0, MAX_DURATION_MS - duration)) /
-      MAX_DURATION_MS /
-      10,
-    0.5
-  );
+  const blur =
+    Math.pow(Math.max(0, MAX_DURATION_MS - duration) / MAX_DURATION_MS, 2.5) *
+    15;
   const hasReachedMax = duration >= MAX_DURATION_MS;
   const canResume = duration > 0 && !hasReachedMax;
   const buttonLabel = isSharpening ? "stop" : canResume ? "resume" : "start";
