@@ -11,6 +11,7 @@ export default function fetchPic(entry: Entry) {
       return res.json();
     })
     .then((data) => {
+      console.log(data);
       if (!data.player || data.player.length === 0) {
         throw new Error("No player found");
       }
