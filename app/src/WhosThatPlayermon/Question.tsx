@@ -103,7 +103,7 @@ export default function Question(props: { entry: Entry }) {
     return { color: "gray", label: "Awaiting start" } as const;
   })();
 
-  const guessedMessage = (() => {
+  const guessedMessage: ReactNode | null = (() => {
     if (!guessedEntry) {
       return "Select a player and submit your guess.";
     }
@@ -112,12 +112,14 @@ export default function Question(props: { entry: Entry }) {
       return "Great job! You identified the player.";
     }
 
-    if (submissionStatus === "incorrect") {
-      return "Not quite. Use the revealed details to guide your next guess.";
+    if (submissionStatus === "incorrect" && guessedEntry) {
+      return null;
     }
 
     return "Submit your guess to check if you're right.";
   })();
+  const shouldShowGuessDetails =
+    submissionStatus === "incorrect" && Boolean(guessedEntry);
   const handleRestart = () => {
     updateDuration(0);
     updateIsSharpening(false);
@@ -212,9 +214,20 @@ export default function Question(props: { entry: Entry }) {
             <Stack gap={4}>
               <Text fw={500}>Your guess</Text>
               <Text>{guessedEntry?.playerName ?? guess}</Text>
-              <Text size="sm" c="dimmed">
-                {guessedMessage}
-              </Text>
+              {shouldShowGuessDetails && guessedEntry ? (
+                <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="sm">
+                  <Detail label="Team" value={guessedEntry.team} />
+                  <Detail label="Position" value={guessedEntry.position} />
+                  <Detail
+                    label="Overall rating"
+                    value={guessedEntry.overallMaddenRating}
+                  />
+                </SimpleGrid>
+              ) : guessedMessage ? (
+                <Text size="sm" c="dimmed">
+                  {guessedMessage}
+                </Text>
+              ) : null}
             </Stack>
           ) : null}
         </Stack>
