@@ -146,9 +146,9 @@ const parseFiltersFromQuery = (): FiltersState => {
 const pad = (value: number) => value.toString().padStart(2, "0");
 
 const formatDayString = (date: Date) => {
-  const month = pad(date.getUTCMonth() + 1);
-  const day = pad(date.getUTCDate());
-  const year = date.getUTCFullYear();
+  const month = pad(date.getMonth() + 1);
+  const day = pad(date.getDate());
+  const year = date.getFullYear();
   return `${month}-${day}-${year}`;
 };
 
@@ -166,9 +166,9 @@ const parseDayString = (value: string): Date | null => {
     return null;
   }
 
-  const utcDate = new Date(Date.UTC(year, month - 1, day));
-  const normalized = formatDayString(utcDate);
-  return normalized === value ? utcDate : null;
+  const localDate = new Date(year, month - 1, day);
+  const normalized = formatDayString(localDate);
+  return normalized === value ? localDate : null;
 };
 
 const getInitialDay = () => {
@@ -574,11 +574,11 @@ export default function Game() {
             label={(value) => value.toString()}
             step={1}
           />
-          <Text size="sm" c="dimmed">
-            {hasMatches
-              ? `${filteredData.length} players`
-              : "No players found matching the selected filters."}
-          </Text>
+          {!hasMatches ? (
+            <Text size="sm" c="dimmed">
+              No players found matching the selected filters.
+            </Text>
+          ) : null}
         </Stack>
         <Checkbox
           label="First strings"
