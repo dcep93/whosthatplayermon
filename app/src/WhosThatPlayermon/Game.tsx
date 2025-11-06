@@ -1,5 +1,6 @@
 import {
   Button,
+  Checkbox,
   Group,
   MultiSelect,
   RangeSlider,
@@ -7,7 +8,7 @@ import {
   Text,
   Title,
 } from "@mantine/core";
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { data, type Entry } from "./Data";
 import Question from "./Question";
 
@@ -29,6 +30,68 @@ const MAX_RATING = data.length
       Number.NEGATIVE_INFINITY
     )
   : 100;
+
+const TEAM_POSITION_SEPARATOR = "@@";
+const getTeamPositionKey = (entry: Pick<Entry, "team" | "position">) =>
+  `${entry.team}${TEAM_POSITION_SEPARATOR}${entry.position}`;
+
+const highestRatingByTeamPosition = new Map<string, number>();
+for (const entry of data) {
+  const key = getTeamPositionKey(entry);
+  const existing = highestRatingByTeamPosition.get(key);
+  if (existing === undefined || entry.overallMaddenRating > existing) {
+    highestRatingByTeamPosition.set(key, entry.overallMaddenRating);
+  }
+}
+
+const parseListParam = (value: string | null) =>
+  value ? value.split(",").map((item) => item.trim()).filter(Boolean) : [];
+
+const clampRating = (value: number) =>
+  Math.max(MIN_RATING, Math.min(value, MAX_RATING));
+
+type FiltersState = {
+  teams: string[];
+  positions: string[];
+  ratingRange: [number, number];
+  firstStrings: boolean;
+};
+
+const parseFiltersFromQuery = (): FiltersState => {
+  if (typeof window === "undefined") {
+    return {
+      teams: [],
+      positions: [],
+      ratingRange: [MIN_RATING, MAX_RATING] as [number, number],
+      firstStrings: false,
+    };
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const teams = parseListParam(params.get("teams"));
+  const positions = parseListParam(params.get("positions"));
+
+  const ratingMinParam = Number.parseInt(params.get("ratingMin") ?? "", 10);
+  const ratingMaxParam = Number.parseInt(params.get("ratingMax") ?? "", 10);
+
+  const ratingMin = Number.isFinite(ratingMinParam)
+    ? clampRating(ratingMinParam)
+    : MIN_RATING;
+  const ratingMax = Number.isFinite(ratingMaxParam)
+    ? clampRating(ratingMaxParam)
+    : MAX_RATING;
+
+  const ratingRange: [number, number] = [
+    Math.min(ratingMin, ratingMax),
+    Math.max(ratingMin, ratingMax),
+  ];
+
+  const firstStringsParam = params.get("firstStrings");
+  const firstStrings =
+    firstStringsParam === "1" || firstStringsParam?.toLowerCase() === "true";
+
+  return { teams, positions, ratingRange, firstStrings };
+};
 
 const shuffle = (data: Entry[]) => {
   const today = new Date();
@@ -63,22 +126,26 @@ const shuffle = (data: Entry[]) => {
 };
 
 export default function Game() {
+  const initialFilters = useMemo(() => parseFiltersFromQuery(), []);
   const [questionKey, setQuestionKey] = useState(0);
   const [entry, _setEntry] = useState<Entry | null>(null);
   const setEntry = (_entry: typeof entry) => {
     _setEntry(_entry);
     setQuestionKey(Date.now());
   };
-  const [selectedTeams, setSelectedTeams] = useState<string[]>([]);
-  const [selectedPositions, setSelectedPositions] = useState<string[]>([]);
-  const [ratingRange, setRatingRange] = useState<[number, number]>([
-    MIN_RATING,
-    MAX_RATING,
-  ]);
-  const [sliderRange, setSliderRange] = useState<[number, number]>([
-    MIN_RATING,
-    MAX_RATING,
-  ]);
+  const [selectedTeams, setSelectedTeams] = useState<string[]>(
+    initialFilters.teams
+  );
+  const [selectedPositions, setSelectedPositions] = useState<string[]>(
+    initialFilters.positions
+  );
+  const [ratingRange, setRatingRange] = useState<[number, number]>(
+    initialFilters.ratingRange
+  );
+  const [sliderRange, setSliderRange] = useState<[number, number]>(
+    initialFilters.ratingRange
+  );
+  const [isFirstStrings, setIsFirstStrings] = useState(initialFilters.firstStrings);
   const [, startTransition] = useTransition();
   const usedPlayersByFilter = useRef<Map<string, Set<string>>>(new Map());
 
@@ -91,7 +158,17 @@ export default function Game() {
     const matchesRating =
       candidate.overallMaddenRating >= ratingRange[0] &&
       candidate.overallMaddenRating <= ratingRange[1];
-    return matchesTeam && matchesPosition && matchesRating;
+    const highestRating = highestRatingByTeamPosition.get(
+      getTeamPositionKey(candidate)
+    );
+    const matchesFirstStrings =
+      !isFirstStrings ||
+      (highestRating !== undefined &&
+        candidate.overallMaddenRating === highestRating);
+
+    return (
+      matchesTeam && matchesPosition && matchesRating && matchesFirstStrings
+    );
   });
 
   const handleFetch = () => {
@@ -104,6 +181,7 @@ export default function Game() {
       teams: [...selectedTeams].sort(),
       positions: [...selectedPositions].sort(),
       ratingRange,
+      firstStrings: isFirstStrings,
     });
 
     let usedPlayers = usedPlayersByFilter.current.get(filterKey);
@@ -149,6 +227,50 @@ export default function Game() {
       setRatingRange(nextRange);
     });
   };
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+
+    if (selectedTeams.length > 0) {
+      params.set("teams", selectedTeams.join(","));
+    } else {
+      params.delete("teams");
+    }
+
+    if (selectedPositions.length > 0) {
+      params.set("positions", selectedPositions.join(","));
+    } else {
+      params.delete("positions");
+    }
+
+    if (ratingRange[0] !== MIN_RATING) {
+      params.set("ratingMin", ratingRange[0].toString());
+    } else {
+      params.delete("ratingMin");
+    }
+
+    if (ratingRange[1] !== MAX_RATING) {
+      params.set("ratingMax", ratingRange[1].toString());
+    } else {
+      params.delete("ratingMax");
+    }
+
+    if (isFirstStrings) {
+      params.set("firstStrings", "1");
+    } else {
+      params.delete("firstStrings");
+    }
+
+    const nextSearch = params.toString();
+    const nextUrl = `${window.location.pathname}${
+      nextSearch ? `?${nextSearch}` : ""
+    }${window.location.hash}`;
+    window.history.replaceState(null, "", nextUrl);
+  }, [selectedTeams, selectedPositions, ratingRange, isFirstStrings]);
 
   const hasMatches = filteredData.length > 0;
 
@@ -196,6 +318,11 @@ export default function Game() {
               : "No players found matching the selected filters."}
           </Text>
         </Stack>
+        <Checkbox
+          label="First strings"
+          checked={isFirstStrings}
+          onChange={(event) => setIsFirstStrings(event.currentTarget.checked)}
+        />
         <Button disabled={!hasMatches} onClick={handleFetch}>
           Fetch player
         </Button>
