@@ -15,6 +15,56 @@ import Question from "./Question";
 var sessionLoops = 0;
 
 const TEAM_OPTIONS = Array.from(new Set(data.map(({ team }) => team))).sort();
+const DIVISION_TEAMS: Record<string, string[]> = {
+  "AFC East": [
+    "Buffalo Bills",
+    "Miami Dolphins",
+    "New England Patriots",
+    "NY Jets",
+  ],
+  "AFC North": [
+    "Baltimore Ravens",
+    "Cincinnati Bengals",
+    "Cleveland Browns",
+    "Pittsburgh Steelers",
+  ],
+  "AFC South": [
+    "Houston Texans",
+    "Indianapolis Colts",
+    "Jacksonville Jaguars",
+    "Tennessee Titans",
+  ],
+  "AFC West": [
+    "Denver Broncos",
+    "Kansas City Chiefs",
+    "Las Vegas Raiders",
+    "Los Angeles Chargers",
+  ],
+  "NFC East": [
+    "Dallas Cowboys",
+    "NY Giants",
+    "Philadelphia Eagles",
+    "Washington Commanders",
+  ],
+  "NFC North": [
+    "Chicago Bears",
+    "Detroit Lions",
+    "Green Bay Packers",
+    "Minnesota Vikings",
+  ],
+  "NFC South": [
+    "Atlanta Falcons",
+    "Carolina Panthers",
+    "New Orleans Saints",
+    "Tampa Bay Buccaneers",
+  ],
+  "NFC West": [
+    "Arizona Cardinals",
+    "Los Angeles Rams",
+    "San Francisco 49ers",
+    "Seattle Seahawks",
+  ],
+};
 const POSITION_OPTIONS = Array.from(
   new Set(data.map(({ position }) => position))
 ).sort();
@@ -214,6 +264,31 @@ export default function Game() {
     }
   };
 
+  const sortTeams = (teams: string[]) =>
+    [...teams].sort((teamA, teamB) => teamA.localeCompare(teamB));
+
+  const handleTeamsChange = (teams: string[]) => {
+    setSelectedTeams(sortTeams(teams));
+  };
+
+  const toggleDivision = (divisionName: string) => {
+    const divisionTeams = DIVISION_TEAMS[divisionName] ?? [];
+
+    setSelectedTeams((currentTeams) => {
+      const hasEntireDivision = divisionTeams.every((team) =>
+        currentTeams.includes(team)
+      );
+
+      if (hasEntireDivision) {
+        return sortTeams(
+          currentTeams.filter((team) => !divisionTeams.includes(team))
+        );
+      }
+
+      return sortTeams([...new Set([...currentTeams, ...divisionTeams])]);
+    });
+  };
+
   const handleRatingChange = (value: [number, number]) => {
     const nextMin = Math.max(MIN_RATING, Math.min(value[0], MAX_RATING));
     const nextMax = Math.max(MIN_RATING, Math.min(value[1], MAX_RATING));
@@ -283,12 +358,33 @@ export default function Game() {
           label="Teams"
           placeholder="Select teams"
           value={selectedTeams}
-          onChange={setSelectedTeams}
+          onChange={handleTeamsChange}
           searchable
           clearable
           nothingFoundMessage="No matching teams"
           checkIconPosition="right"
         />
+        <Stack gap="xs">
+          <Text fw={500}>Divisions</Text>
+          <Group gap="xs">
+            {Object.entries(DIVISION_TEAMS).map(([divisionName, teams]) => {
+              const isSelected = teams.every((team) =>
+                selectedTeams.includes(team)
+              );
+
+              return (
+                <Button
+                  key={divisionName}
+                  variant={isSelected ? "filled" : "outline"}
+                  onClick={() => toggleDivision(divisionName)}
+                  size="xs"
+                >
+                  {divisionName}
+                </Button>
+              );
+            })}
+          </Group>
+        </Stack>
         <MultiSelect
           data={POSITION_OPTIONS}
           label="Positions"
