@@ -22,8 +22,6 @@ export default function Question(props: { entry: Entry }) {
   const [isImageForcedClear, setIsImageForcedClear] = useState(false);
   const [isAnswerManuallyRevealed, setIsAnswerManuallyRevealed] =
     useState(false);
-  const [isAnswerHiddenAfterReveal, setIsAnswerHiddenAfterReveal] =
-    useState(false);
 
   useEffect(() => void fetchPic(props.entry).then(updateImgSrc), [props.entry]);
 
@@ -49,8 +47,7 @@ export default function Question(props: { entry: Entry }) {
     }
   }, [durationMs, isSharpening]);
   const hasTimerFinished = durationMs >= MAX_DURATION_MS;
-  const showAnswer =
-    isAnswerManuallyRevealed || (hasTimerFinished && !isAnswerHiddenAfterReveal);
+  const showAnswer = isAnswerManuallyRevealed;
   const isImageClear = isImageForcedClear || hasTimerFinished;
   const blur = isImageClear
     ? 0
@@ -73,7 +70,6 @@ export default function Question(props: { entry: Entry }) {
     updateIsSharpening(false);
     setIsImageForcedClear(false);
     setIsAnswerManuallyRevealed(false);
-    setIsAnswerHiddenAfterReveal(false);
     setGuess(null);
   };
   const handleStart = () => {
@@ -81,7 +77,6 @@ export default function Question(props: { entry: Entry }) {
     updateIsSharpening(true);
     setIsImageForcedClear(false);
     setIsAnswerManuallyRevealed(false);
-    setIsAnswerHiddenAfterReveal(false);
   };
   const handleResume = () => {
     updateIsSharpening(true);
@@ -103,13 +98,11 @@ export default function Question(props: { entry: Entry }) {
   const handleShowAnswer = () => {
     setIsImageForcedClear(true);
     setIsAnswerManuallyRevealed(true);
-    setIsAnswerHiddenAfterReveal(false);
     updateIsSharpening(false);
   };
   const handleShowPictureOnly = () => {
     setIsImageForcedClear(true);
     setIsAnswerManuallyRevealed(false);
-    setIsAnswerHiddenAfterReveal(true);
     updateIsSharpening(false);
     updateDuration(MAX_DURATION_MS);
   };
