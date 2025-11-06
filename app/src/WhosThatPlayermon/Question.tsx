@@ -1,4 +1,4 @@
-import { Select, Stack } from "@mantine/core";
+import { Button, Group, Select, Stack } from "@mantine/core";
 import { useEffect, useState } from "react";
 import { data, type Entry } from "./Data";
 import fetchPic from "./fetchPic";
@@ -19,6 +19,11 @@ export default function Question(props: { entry: Entry }) {
   const [durationMs, updateDuration] = useState(0);
   const [isSharpening, updateIsSharpening] = useState(false);
   const [guess, setGuess] = useState<string | null>(null);
+  const [isImageForcedClear, setIsImageForcedClear] = useState(false);
+  const [isAnswerManuallyRevealed, setIsAnswerManuallyRevealed] =
+    useState(false);
+  const [isAnswerHiddenAfterReveal, setIsAnswerHiddenAfterReveal] =
+    useState(false);
 
   useEffect(() => void fetchPic(props.entry).then(updateImgSrc), [props.entry]);
 
@@ -43,9 +48,14 @@ export default function Question(props: { entry: Entry }) {
       updateIsSharpening(false);
     }
   }, [durationMs, isSharpening]);
-  const blur =
-    Math.pow(Math.max(0, MAX_DURATION_MS - durationMs) / MAX_DURATION_MS, 2.5) *
-    15;
+  const hasTimerFinished = durationMs >= MAX_DURATION_MS;
+  const showAnswer =
+    isAnswerManuallyRevealed || (hasTimerFinished && !isAnswerHiddenAfterReveal);
+  const isImageClear = isImageForcedClear || hasTimerFinished;
+  const blur = isImageClear
+    ? 0
+    : Math.pow(Math.max(0, MAX_DURATION_MS - durationMs) / MAX_DURATION_MS, 2.5) *
+      15;
   const canResume = durationMs < MAX_DURATION_MS;
   const buttonLabel = isSharpening
     ? "stop"
@@ -54,7 +64,6 @@ export default function Question(props: { entry: Entry }) {
     : canResume
     ? "resume"
     : "restart";
-  const showAnswer = buttonLabel === "restart";
   const { playerName: _playerName, ...entryWithoutPlayerName } = props.entry;
   const entryDisplay: Record<string, unknown> = showAnswer
     ? props.entry
@@ -62,10 +71,17 @@ export default function Question(props: { entry: Entry }) {
   const handleRestart = () => {
     updateDuration(0);
     updateIsSharpening(false);
+    setIsImageForcedClear(false);
+    setIsAnswerManuallyRevealed(false);
+    setIsAnswerHiddenAfterReveal(false);
+    setGuess(null);
   };
   const handleStart = () => {
     updateDuration(0);
     updateIsSharpening(true);
+    setIsImageForcedClear(false);
+    setIsAnswerManuallyRevealed(false);
+    setIsAnswerHiddenAfterReveal(false);
   };
   const handleResume = () => {
     updateIsSharpening(true);
@@ -84,6 +100,25 @@ export default function Question(props: { entry: Entry }) {
       handleRestart();
     }
   };
+  const handleShowAnswer = () => {
+    setIsImageForcedClear(true);
+    setIsAnswerManuallyRevealed(true);
+    setIsAnswerHiddenAfterReveal(false);
+    updateIsSharpening(false);
+  };
+  const handleShowPictureOnly = () => {
+    setIsImageForcedClear(true);
+    setIsAnswerManuallyRevealed(false);
+    setIsAnswerHiddenAfterReveal(true);
+    updateIsSharpening(false);
+  };
+
+  useEffect(() => {
+    if (durationMs >= MAX_DURATION_MS) {
+      setIsImageForcedClear(true);
+    }
+  }, [durationMs]);
+
   return (
     <Stack gap="sm">
       <pre>
@@ -99,7 +134,18 @@ export default function Question(props: { entry: Entry }) {
 
       {!imgSrc ? null : (
         <Stack>
-          <button onClick={handleButtonClick}>{buttonLabel}</button>
+          <Group gap="xs">
+            <Button onClick={handleButtonClick}>{buttonLabel}</Button>
+            <Button onClick={handleShowAnswer} disabled={showAnswer}>
+              Show answer
+            </Button>
+            <Button
+              onClick={handleShowPictureOnly}
+              disabled={isImageClear && !showAnswer}
+            >
+              Show picture only
+            </Button>
+          </Group>
           <img
             onLoad={() => updateImgLoaded(true)}
             alt={"no img found"}
