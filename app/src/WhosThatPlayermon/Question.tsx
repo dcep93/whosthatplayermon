@@ -138,7 +138,12 @@ export default function Question(props: { entry: Entry }) {
 
   return (
     <Stack gap="sm">
-      <pre>
+      <pre
+        style={{
+          maxWidth: "100%",
+          overflowX: "auto",
+        }}
+      >
         {JSON.stringify(
           {
             ...entryDisplay,
