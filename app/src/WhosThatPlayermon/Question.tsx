@@ -1,5 +1,5 @@
 import { Button, Select, Stack } from "@mantine/core";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { data, type Entry } from "./Data";
 import fetchPic from "./fetchPic";
 
@@ -25,6 +25,10 @@ export default function Question(props: { entry: Entry }) {
   const [submissionStatus, setSubmissionStatus] = useState<
     "idle" | "correct" | "incorrect"
   >("idle");
+  const guessedEntry = useMemo(
+    () => data.find((entry) => entry.playerName === guess),
+    [guess]
+  );
 
   useEffect(() => void fetchPic(props.entry).then(updateImgSrc), [props.entry]);
 
@@ -105,6 +109,7 @@ export default function Question(props: { entry: Entry }) {
     setIsImageForcedClear(true);
     setIsAnswerManuallyRevealed(true);
     updateIsSharpening(false);
+    updateDuration(MAX_DURATION_MS);
   };
   const handleShowPictureOnly = () => {
     setIsImageForcedClear(true);
@@ -149,6 +154,7 @@ export default function Question(props: { entry: Entry }) {
           {
             ...entryDisplay,
             ...(!imgLoaded ? {} : { durationMs, MAX_DURATION_MS }),
+            ...(guessedEntry ? { guessedPlayer: guessedEntry } : {}),
           },
           null,
           2
