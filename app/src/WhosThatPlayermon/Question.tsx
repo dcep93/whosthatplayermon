@@ -1,4 +1,4 @@
-import { Badge, Button, Card, Group, Select, SimpleGrid, Stack, Text } from "@mantine/core";
+import { Button, Card, Select, SimpleGrid, Stack, Text } from "@mantine/core";
 import { useEffect, useMemo, useState } from "react";
 import { type ReactNode } from "react";
 import { data, type Entry } from "./Data";
@@ -172,12 +172,6 @@ export default function Question(props: { entry: Entry }) {
     <Stack gap="lg">
       <Card withBorder padding="lg" radius="md">
         <Stack gap="md">
-          <Group gap="xs">
-            {showAnswer ? <Badge color="grape">Answer revealed</Badge> : null}
-            {isImageClear && !showAnswer ? (
-              <Badge color="teal">Picture clear</Badge>
-            ) : null}
-          </Group>
           <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
             {shouldRevealDetails ? (
               <Detail label="Player" value={props.entry.playerName} />
