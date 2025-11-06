@@ -66,6 +66,7 @@ export default function Question(props: { entry: Entry }) {
     ? "resume"
     : "restart";
   const { playerName: _playerName, ...entryWithoutPlayerName } = props.entry;
+  void _playerName;
   const entryDisplay: Record<string, unknown> = shouldRevealDetails
     ? props.entry
     : entryWithoutPlayerName;
