@@ -582,7 +582,8 @@ export default function Game() {
           ) : null}
         </Stack>
         <Checkbox
-          label="First strings"
+          label="Only show first-string players"
+          description="Limit results to the highest-rated player for each team and position."
           checked={isFirstStrings}
           onChange={(event) => setIsFirstStrings(event.currentTarget.checked)}
         />
