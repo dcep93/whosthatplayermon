@@ -8,7 +8,6 @@ import {
   Stack,
   Text,
   TextInput,
-  Title,
 } from "@mantine/core";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { data, type Entry } from "./Data";
@@ -484,7 +483,6 @@ export default function Game() {
   return (
     <Group gap="lg" p="md" align="flex-start">
       <Stack gap="md">
-        <Title order={2}>Filters</Title>
         <Stack gap="xs">
           <Text fw={500}>Day</Text>
           <Group gap="xs" align="center">
