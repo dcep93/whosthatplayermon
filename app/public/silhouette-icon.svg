@@ -5,6 +5,8 @@
       <stop offset="100%" stop-color="#0f172a" />
     </linearGradient>
   </defs>
-  <rect width="64" height="64" rx="12" fill="#0b1120" />
-  <path d="M32 12c6.075 0 11 4.925 11 11s-4.925 11-11 11-11-4.925-11-11 4.925-11 11-11zm0 26c8.836 0 16 7.164 16 16v2H16v-2c0-8.836 7.164-16 16-16z" fill="url(#silhouetteGradient)" />
+  <path
+    fill="url(#silhouetteGradient)"
+    d="M32 10c7.18 0 13 5.82 13 13s-5.82 13-13 13-13-5.82-13-13 5.82-13 13-13zm0 28c10.493 0 19 8.507 19 19v3H13v-3c0-10.493 8.507-19 19-19z"
+  />
 </svg>
