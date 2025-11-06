@@ -54,6 +54,11 @@ export default function Question(props: { entry: Entry }) {
     : canResume
     ? "resume"
     : "restart";
+  const showAnswer = buttonLabel === "restart";
+  const { playerName: _playerName, ...entryWithoutPlayerName } = props.entry;
+  const entryDisplay: Record<string, unknown> = showAnswer
+    ? props.entry
+    : entryWithoutPlayerName;
   const handleRestart = () => {
     updateDuration(0);
     updateIsSharpening(false);
@@ -84,8 +89,7 @@ export default function Question(props: { entry: Entry }) {
       <pre>
         {JSON.stringify(
           {
-            ...props.entry,
-            // playerName: undefined,
+            ...entryDisplay,
             ...(!imgLoaded ? {} : { durationMs, MAX_DURATION_MS }),
           },
           null,
