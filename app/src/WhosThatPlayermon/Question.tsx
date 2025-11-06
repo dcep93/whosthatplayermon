@@ -1,10 +1,22 @@
-import { Badge, Button, Card, Group, Select, SimpleGrid, Stack, Text } from "@mantine/core";
+import {
+  Badge,
+  Box,
+  Button,
+  Card,
+  Group,
+  Select,
+  SimpleGrid,
+  Skeleton,
+  Stack,
+  Text,
+} from "@mantine/core";
 import { useEffect, useMemo, useState } from "react";
 import { type ReactNode } from "react";
 import { data, type Entry } from "./Data";
 import fetchPic from "./fetchPic";
 
 const IMG_WIDTH_PX = 300;
+const IMG_HEIGHT_PX = 300;
 const MAX_DURATION_MS = 5000;
 const INTERVAL_MS = 10;
 
@@ -45,6 +57,9 @@ export default function Question(props: { entry: Entry }) {
   );
 
   useEffect(() => void fetchPic(props.entry).then(updateImgSrc), [props.entry]);
+  useEffect(() => {
+    updateImgLoaded(false);
+  }, [imgSrc]);
 
   useEffect(() => {
     if (!isSharpening) {
@@ -229,47 +244,66 @@ export default function Question(props: { entry: Entry }) {
               Show picture only
             </Button>
           </Stack>
-          {!imgSrc ? (
-            <Text size="sm" c="dimmed">
-              Loading player image…
-            </Text>
-          ) : (
-            <Stack gap="md" align="center">
-              <img
-                onLoad={() => updateImgLoaded(true)}
-                alt="Player portrait"
-                src={imgSrc}
-                style={{
-                  width: `${IMG_WIDTH_PX}px`,
-                  filter: `blur(${blur}px)`,
-                  willChange: "filter",
-                  transform: "translateZ(0)",
-                }}
-                decoding="async"
-                loading="lazy"
-              />
-              {!imgLoaded || isSharpening ? null : (
-                <Stack gap="xs" w="100%">
-                  <Select
-                    label="Your answer"
-                    placeholder="Select a player"
-                    data={PLAYER_NAME_OPTIONS}
-                    searchable
-                    value={guess}
-                    onChange={setGuess}
-                    nothingFoundMessage="No matching players"
-                  />
-                  <Button
-                    fullWidth
-                    onClick={handleSubmitGuess}
-                    disabled={!guess}
-                  >
-                    Submit guess
-                  </Button>
-                </Stack>
-              )}
-            </Stack>
-          )}
+          <Stack gap="md" align="center">
+            <Box
+              style={{
+                width: `${IMG_WIDTH_PX}px`,
+                height: `${IMG_HEIGHT_PX}px`,
+                position: "relative",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                overflow: "hidden",
+              }}
+            >
+              {imgSrc ? (
+                <img
+                  onLoad={() => updateImgLoaded(true)}
+                  alt="Player portrait"
+                  src={imgSrc}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "contain",
+                    filter: `blur(${blur}px)`,
+                    willChange: "filter",
+                    transform: "translateZ(0)",
+                  }}
+                  decoding="async"
+                  loading="lazy"
+                />
+              ) : null}
+              {!imgSrc || !imgLoaded ? (
+                <Skeleton
+                  width="100%"
+                  height="100%"
+                  radius="md"
+                  style={{ position: "absolute", inset: 0 }}
+                />
+              ) : null}
+            </Box>
+            {!imgSrc ? (
+              <Text size="sm" c="dimmed" ta="center">
+                Loading player image…
+              </Text>
+            ) : null}
+            {!imgLoaded || isSharpening ? null : (
+              <Stack gap="xs" w="100%">
+                <Select
+                  label="Your answer"
+                  placeholder="Select a player"
+                  data={PLAYER_NAME_OPTIONS}
+                  searchable
+                  value={guess}
+                  onChange={setGuess}
+                  nothingFoundMessage="No matching players"
+                />
+                <Button fullWidth onClick={handleSubmitGuess} disabled={!guess}>
+                  Submit guess
+                </Button>
+              </Stack>
+            )}
+          </Stack>
         </Stack>
       </Card>
     </Stack>
