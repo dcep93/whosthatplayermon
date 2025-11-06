@@ -1,0 +1,16 @@
+.wtp-app-shell {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: var(--mantine-spacing-xl, 2.5rem);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  overflow-y: auto;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(2, 6, 23, 0.85));
+  backdrop-filter: blur(6px);
+}
+
+.wtp-app-shell > * {
+  flex: 1;
+  max-width: 1200px;
+}
