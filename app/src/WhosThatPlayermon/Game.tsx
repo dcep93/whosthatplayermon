@@ -457,7 +457,12 @@ export default function Game() {
       params.delete("firstStrings");
     }
 
-    params.set("day", currentDay);
+    const today = formatDayString(new Date());
+    if (currentDay !== today) {
+      params.set("day", currentDay);
+    } else {
+      params.delete("day");
+    }
 
     if (hasMatches && currentQuestionIndex > 0) {
       params.set("question", (currentQuestionIndex + 1).toString());
