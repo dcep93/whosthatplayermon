@@ -572,6 +572,9 @@ export default function Game() {
             label={(value) => value.toString()}
             step={1}
           />
+          <Text size="sm" c="dimmed">
+            {sliderRange[0]} - {sliderRange[1]}
+          </Text>
           {!hasMatches ? (
             <Text size="sm" c="dimmed">
               No players found matching the selected filters.
@@ -594,7 +597,7 @@ export default function Game() {
           </ActionIcon>
           <Text size="sm">
             {hasMatches
-              ? `Question ${currentQuestionIndex + 1} of ${filteredData.length}`
+              ? `${currentQuestionIndex + 1} / ${filteredData.length}`
               : "No available questions for the selected filters."}
           </Text>
           <ActionIcon
