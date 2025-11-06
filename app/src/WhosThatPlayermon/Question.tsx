@@ -1,14 +1,4 @@
-import {
-  Badge,
-  Button,
-  Card,
-  Group,
-  Progress,
-  Select,
-  SimpleGrid,
-  Stack,
-  Text,
-} from "@mantine/core";
+import { Badge, Button, Card, Group, Select, SimpleGrid, Stack, Text } from "@mantine/core";
 import { useEffect, useMemo, useState } from "react";
 import { type ReactNode } from "react";
 import { data, type Entry } from "./Data";
@@ -23,8 +13,6 @@ const PLAYER_NAME_OPTIONS = Array.from(
 )
   .sort((a, b) => a.localeCompare(b))
   .map((playerName) => ({ value: playerName, label: playerName }));
-
-const formatSeconds = (value: number) => (value / 1000).toFixed(1);
 
 function Detail(props: { label: string; value: ReactNode }) {
   const { label, value } = props;
@@ -115,9 +103,6 @@ export default function Question(props: { entry: Entry }) {
     return { color: "gray", label: "Awaiting start" } as const;
   })();
 
-  const progressValue =
-    (Math.min(durationMs, MAX_DURATION_MS) / MAX_DURATION_MS) * 100;
-
   const guessedMessage = (() => {
     if (!guessedEntry) {
       return "Select a player and submit your guess.";
@@ -205,16 +190,6 @@ export default function Question(props: { entry: Entry }) {
     <Stack gap="lg">
       <Card withBorder padding="lg" radius="md">
         <Stack gap="md">
-          <Stack gap="xs">
-            <Group justify="space-between" align="center">
-              <Text fw={600}>Sharpening progress</Text>
-              <Text size="sm" c="dimmed">
-                {formatSeconds(Math.min(durationMs, MAX_DURATION_MS))}s /{" "}
-                {formatSeconds(MAX_DURATION_MS)}s
-              </Text>
-            </Group>
-            <Progress value={progressValue} aria-label="Sharpening progress" />
-          </Stack>
           <Group gap="xs">
             <Badge color={statusBadge.color}>{statusBadge.label}</Badge>
             {showAnswer ? <Badge color="grape">Answer revealed</Badge> : null}
@@ -225,9 +200,7 @@ export default function Question(props: { entry: Entry }) {
           <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
             {shouldRevealDetails ? (
               <Detail label="Player" value={props.entry.playerName} />
-            ) : (
-              <Detail label="Player" value="Hidden" />
-            )}
+            ) : null}
             <Detail label="Team" value={props.entry.team} />
             <Detail label="Position" value={props.entry.position} />
             <Detail
@@ -235,13 +208,15 @@ export default function Question(props: { entry: Entry }) {
               value={props.entry.overallMaddenRating}
             />
           </SimpleGrid>
-          <Stack gap={4}>
-            <Text fw={500}>Your guess</Text>
-            <Text>{guessedEntry ? guessedEntry.playerName : "None yet"}</Text>
-            <Text size="sm" c="dimmed">
-              {guessedMessage}
-            </Text>
-          </Stack>
+          {guess ? (
+            <Stack gap={4}>
+              <Text fw={500}>Your guess</Text>
+              <Text>{guessedEntry?.playerName ?? guess}</Text>
+              <Text size="sm" c="dimmed">
+                {guessedMessage}
+              </Text>
+            </Stack>
+          ) : null}
         </Stack>
       </Card>
 
