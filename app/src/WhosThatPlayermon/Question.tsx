@@ -111,6 +111,7 @@ export default function Question(props: { entry: Entry }) {
     setIsAnswerManuallyRevealed(false);
     setIsAnswerHiddenAfterReveal(true);
     updateIsSharpening(false);
+    updateDuration(MAX_DURATION_MS);
   };
 
   useEffect(() => {
