@@ -1,4 +1,4 @@
-import { Button, Group, Select, Stack } from "@mantine/core";
+import { Button, Select, Stack } from "@mantine/core";
 import { useEffect, useState } from "react";
 import { data, type Entry } from "./Data";
 import fetchPic from "./fetchPic";
@@ -22,6 +22,9 @@ export default function Question(props: { entry: Entry }) {
   const [isImageForcedClear, setIsImageForcedClear] = useState(false);
   const [isAnswerManuallyRevealed, setIsAnswerManuallyRevealed] =
     useState(false);
+  const [submissionStatus, setSubmissionStatus] = useState<
+    "idle" | "correct" | "incorrect"
+  >("idle");
 
   useEffect(() => void fetchPic(props.entry).then(updateImgSrc), [props.entry]);
 
@@ -48,6 +51,7 @@ export default function Question(props: { entry: Entry }) {
   }, [durationMs, isSharpening]);
   const hasTimerFinished = durationMs >= MAX_DURATION_MS;
   const showAnswer = isAnswerManuallyRevealed;
+  const shouldRevealDetails = showAnswer || submissionStatus === "incorrect";
   const isImageClear = isImageForcedClear || hasTimerFinished;
   const blur = isImageClear
     ? 0
@@ -62,7 +66,7 @@ export default function Question(props: { entry: Entry }) {
     ? "resume"
     : "restart";
   const { playerName: _playerName, ...entryWithoutPlayerName } = props.entry;
-  const entryDisplay: Record<string, unknown> = showAnswer
+  const entryDisplay: Record<string, unknown> = shouldRevealDetails
     ? props.entry
     : entryWithoutPlayerName;
   const handleRestart = () => {
@@ -71,6 +75,7 @@ export default function Question(props: { entry: Entry }) {
     setIsImageForcedClear(false);
     setIsAnswerManuallyRevealed(false);
     setGuess(null);
+    setSubmissionStatus("idle");
   };
   const handleStart = () => {
     updateDuration(0);
@@ -107,6 +112,24 @@ export default function Question(props: { entry: Entry }) {
     updateDuration(MAX_DURATION_MS);
   };
 
+  const handleSubmitGuess = () => {
+    if (!guess) {
+      return;
+    }
+
+    const isCorrectGuess = guess === props.entry.playerName;
+    updateIsSharpening(false);
+
+    if (isCorrectGuess) {
+      setSubmissionStatus("correct");
+      setIsImageForcedClear(true);
+      setIsAnswerManuallyRevealed(true);
+      return;
+    }
+
+    setSubmissionStatus("incorrect");
+  };
+
   useEffect(() => {
     if (durationMs >= MAX_DURATION_MS) {
       setIsImageForcedClear(true);
@@ -128,18 +151,21 @@ export default function Question(props: { entry: Entry }) {
 
       {!imgSrc ? null : (
         <Stack>
-          <Group gap="xs">
-            <Button onClick={handleButtonClick}>{buttonLabel}</Button>
-            <Button onClick={handleShowAnswer} disabled={showAnswer}>
+          <Stack gap="xs">
+            <Button fullWidth onClick={handleButtonClick}>
+              {buttonLabel}
+            </Button>
+            <Button fullWidth onClick={handleShowAnswer} disabled={showAnswer}>
               Show answer
             </Button>
             <Button
+              fullWidth
               onClick={handleShowPictureOnly}
               disabled={isImageClear && !showAnswer}
             >
               Show picture only
             </Button>
-          </Group>
+          </Stack>
           <img
             onLoad={() => updateImgLoaded(true)}
             alt={"no img found"}
@@ -156,15 +182,20 @@ export default function Question(props: { entry: Entry }) {
             loading="lazy"
           />
           {!imgLoaded || isSharpening ? null : (
-            <Select
-              label="Your answer"
-              placeholder="Select a player"
-              data={PLAYER_NAME_OPTIONS}
-              searchable
-              value={guess}
-              onChange={setGuess}
-              nothingFoundMessage="No matching players"
-            />
+            <Stack gap="xs">
+              <Select
+                label="Your answer"
+                placeholder="Select a player"
+                data={PLAYER_NAME_OPTIONS}
+                searchable
+                value={guess}
+                onChange={setGuess}
+                nothingFoundMessage="No matching players"
+              />
+              <Button fullWidth onClick={handleSubmitGuess} disabled={!guess}>
+                Submit guess
+              </Button>
+            </Stack>
           )}
         </Stack>
       )}
