@@ -83,26 +83,6 @@ export default function Question(props: { entry: Entry }) {
     : canResume
     ? "resume"
     : "restart";
-  const statusBadge = (() => {
-    if (submissionStatus === "correct") {
-      return { color: "green", label: "Correct guess" } as const;
-    }
-
-    if (submissionStatus === "incorrect") {
-      return { color: "red", label: "Incorrect guess" } as const;
-    }
-
-    if (isSharpening) {
-      return { color: "yellow", label: "Sharpening in progress" } as const;
-    }
-
-    if (isImageClear) {
-      return { color: "blue", label: "Image ready" } as const;
-    }
-
-    return { color: "gray", label: "Awaiting start" } as const;
-  })();
-
   const guessedMessage: ReactNode | null = (() => {
     if (!guessedEntry) {
       return "Select a player and submit your guess.";
@@ -193,7 +173,6 @@ export default function Question(props: { entry: Entry }) {
       <Card withBorder padding="lg" radius="md">
         <Stack gap="md">
           <Group gap="xs">
-            <Badge color={statusBadge.color}>{statusBadge.label}</Badge>
             {showAnswer ? <Badge color="grape">Answer revealed</Badge> : null}
             {isImageClear && !showAnswer ? (
               <Badge color="teal">Picture clear</Badge>
