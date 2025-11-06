@@ -1,5 +1,16 @@
-import { Button, Select, Stack } from "@mantine/core";
+import {
+  Badge,
+  Button,
+  Card,
+  Group,
+  Progress,
+  Select,
+  SimpleGrid,
+  Stack,
+  Text,
+} from "@mantine/core";
 import { useEffect, useMemo, useState } from "react";
+import { type ReactNode } from "react";
 import { data, type Entry } from "./Data";
 import fetchPic from "./fetchPic";
 
@@ -12,6 +23,21 @@ const PLAYER_NAME_OPTIONS = Array.from(
 )
   .sort((a, b) => a.localeCompare(b))
   .map((playerName) => ({ value: playerName, label: playerName }));
+
+const formatSeconds = (value: number) => (value / 1000).toFixed(1);
+
+function Detail(props: { label: string; value: ReactNode }) {
+  const { label, value } = props;
+
+  return (
+    <Stack gap={0}>
+      <Text size="sm" c="dimmed">
+        {label}
+      </Text>
+      <Text fw={500}>{value}</Text>
+    </Stack>
+  );
+}
 
 export default function Question(props: { entry: Entry }) {
   const [imgSrc, updateImgSrc] = useState<string | null>(null);
@@ -69,11 +95,44 @@ export default function Question(props: { entry: Entry }) {
     : canResume
     ? "resume"
     : "restart";
-  const { playerName: _playerName, ...entryWithoutPlayerName } = props.entry;
-  void _playerName;
-  const entryDisplay: Record<string, unknown> = shouldRevealDetails
-    ? props.entry
-    : entryWithoutPlayerName;
+  const statusBadge = (() => {
+    if (submissionStatus === "correct") {
+      return { color: "green", label: "Correct guess" } as const;
+    }
+
+    if (submissionStatus === "incorrect") {
+      return { color: "red", label: "Incorrect guess" } as const;
+    }
+
+    if (isSharpening) {
+      return { color: "yellow", label: "Sharpening in progress" } as const;
+    }
+
+    if (isImageClear) {
+      return { color: "blue", label: "Image ready" } as const;
+    }
+
+    return { color: "gray", label: "Awaiting start" } as const;
+  })();
+
+  const progressValue =
+    (Math.min(durationMs, MAX_DURATION_MS) / MAX_DURATION_MS) * 100;
+
+  const guessedMessage = (() => {
+    if (!guessedEntry) {
+      return "Select a player and submit your guess.";
+    }
+
+    if (submissionStatus === "correct") {
+      return "Great job! You identified the player.";
+    }
+
+    if (submissionStatus === "incorrect") {
+      return "Not quite. Use the revealed details to guide your next guess.";
+    }
+
+    return "Submit your guess to check if you're right.";
+  })();
   const handleRestart = () => {
     updateDuration(0);
     updateIsSharpening(false);
@@ -143,26 +202,51 @@ export default function Question(props: { entry: Entry }) {
   }, [durationMs]);
 
   return (
-    <Stack gap="sm">
-      <pre
-        style={{
-          maxWidth: "100%",
-          overflowX: "auto",
-        }}
-      >
-        {JSON.stringify(
-          {
-            ...entryDisplay,
-            ...(!imgLoaded ? {} : { durationMs, MAX_DURATION_MS }),
-            ...(guessedEntry ? { guessedPlayer: guessedEntry } : {}),
-          },
-          null,
-          2
-        )}
-      </pre>
+    <Stack gap="lg">
+      <Card withBorder padding="lg" radius="md">
+        <Stack gap="md">
+          <Stack gap="xs">
+            <Group justify="space-between" align="center">
+              <Text fw={600}>Sharpening progress</Text>
+              <Text size="sm" c="dimmed">
+                {formatSeconds(Math.min(durationMs, MAX_DURATION_MS))}s /{" "}
+                {formatSeconds(MAX_DURATION_MS)}s
+              </Text>
+            </Group>
+            <Progress value={progressValue} aria-label="Sharpening progress" />
+          </Stack>
+          <Group gap="xs">
+            <Badge color={statusBadge.color}>{statusBadge.label}</Badge>
+            {showAnswer ? <Badge color="grape">Answer revealed</Badge> : null}
+            {isImageClear && !showAnswer ? (
+              <Badge color="teal">Picture clear</Badge>
+            ) : null}
+          </Group>
+          <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
+            {shouldRevealDetails ? (
+              <Detail label="Player" value={props.entry.playerName} />
+            ) : (
+              <Detail label="Player" value="Hidden" />
+            )}
+            <Detail label="Team" value={props.entry.team} />
+            <Detail label="Position" value={props.entry.position} />
+            <Detail
+              label="Overall rating"
+              value={props.entry.overallMaddenRating}
+            />
+          </SimpleGrid>
+          <Stack gap={4}>
+            <Text fw={500}>Your guess</Text>
+            <Text>{guessedEntry ? guessedEntry.playerName : "None yet"}</Text>
+            <Text size="sm" c="dimmed">
+              {guessedMessage}
+            </Text>
+          </Stack>
+        </Stack>
+      </Card>
 
-      {!imgSrc ? null : (
-        <Stack>
+      <Card withBorder padding="lg" radius="md">
+        <Stack gap="md">
           <Stack gap="xs">
             <Button fullWidth onClick={handleButtonClick}>
               {buttonLabel}
@@ -178,39 +262,49 @@ export default function Question(props: { entry: Entry }) {
               Show picture only
             </Button>
           </Stack>
-          <img
-            onLoad={() => updateImgLoaded(true)}
-            alt={"no img found"}
-            src={imgSrc}
-            style={{
-              width: `${IMG_WIDTH_PX}px`,
-              filter: `blur(${blur}px)`,
-              // small perf wins:
-              willChange: "filter",
-              transform: "translateZ(0)", // promote to its own layer on many GPUs
-            }}
-            // Keeps edges from bleeding during blur:
-            decoding="async"
-            loading="lazy"
-          />
-          {!imgLoaded || isSharpening ? null : (
-            <Stack gap="xs">
-              <Select
-                label="Your answer"
-                placeholder="Select a player"
-                data={PLAYER_NAME_OPTIONS}
-                searchable
-                value={guess}
-                onChange={setGuess}
-                nothingFoundMessage="No matching players"
+          {!imgSrc ? (
+            <Text size="sm" c="dimmed">
+              Loading player image…
+            </Text>
+          ) : (
+            <Stack gap="md" align="center">
+              <img
+                onLoad={() => updateImgLoaded(true)}
+                alt="Player portrait"
+                src={imgSrc}
+                style={{
+                  width: `${IMG_WIDTH_PX}px`,
+                  filter: `blur(${blur}px)`,
+                  willChange: "filter",
+                  transform: "translateZ(0)",
+                }}
+                decoding="async"
+                loading="lazy"
               />
-              <Button fullWidth onClick={handleSubmitGuess} disabled={!guess}>
-                Submit guess
-              </Button>
+              {!imgLoaded || isSharpening ? null : (
+                <Stack gap="xs" w="100%">
+                  <Select
+                    label="Your answer"
+                    placeholder="Select a player"
+                    data={PLAYER_NAME_OPTIONS}
+                    searchable
+                    value={guess}
+                    onChange={setGuess}
+                    nothingFoundMessage="No matching players"
+                  />
+                  <Button
+                    fullWidth
+                    onClick={handleSubmitGuess}
+                    disabled={!guess}
+                  >
+                    Submit guess
+                  </Button>
+                </Stack>
+              )}
             </Stack>
           )}
         </Stack>
-      )}
+      </Card>
     </Stack>
   );
 }
