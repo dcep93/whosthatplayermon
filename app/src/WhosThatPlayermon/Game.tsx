@@ -1,4 +1,5 @@
 import {
+  ActionIcon,
   Button,
   Checkbox,
   Group,
@@ -6,13 +7,12 @@ import {
   RangeSlider,
   Stack,
   Text,
+  TextInput,
   Title,
 } from "@mantine/core";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { data, type Entry } from "./Data";
 import Question from "./Question";
-
-var sessionLoops = 0;
 
 const TEAM_OPTIONS = Array.from(new Set(data.map(({ team }) => team))).sort();
 const DIVISION_TEAMS: Record<string, string[]> = {
@@ -143,46 +143,112 @@ const parseFiltersFromQuery = (): FiltersState => {
   return { teams, positions, ratingRange, firstStrings };
 };
 
-const shuffle = (data: Entry[]) => {
-  const today = new Date();
-  const dateKey = today.toISOString().slice(0, 10);
-  const hashKey = `${dateKey}-${sessionLoops}`;
+const pad = (value: number) => value.toString().padStart(2, "0");
 
-  // Simple string hash (same as your base)
-  let hash = 0;
-  for (let i = 0; i < hashKey.length; i++) {
-    const chr = hashKey.charCodeAt(i);
-    hash = (hash << 5) - hash + chr;
-    hash |= 0;
+const formatDayString = (date: Date) => {
+  const month = pad(date.getUTCMonth() + 1);
+  const day = pad(date.getUTCDate());
+  const year = date.getUTCFullYear();
+  return `${month}-${day}-${year}`;
+};
+
+const parseDayString = (value: string): Date | null => {
+  const match = /^([0-1]\d)-([0-3]\d)-(\d{4})$/.exec(value);
+  if (!match) {
+    return null;
   }
 
-  // Convert to positive seed
-  let seed = hash >>> 0;
+  const month = Number.parseInt(match[1], 10);
+  const day = Number.parseInt(match[2], 10);
+  const year = Number.parseInt(match[3], 10);
 
-  // Deterministic pseudo-random number generator (LCG)
-  const random = () => {
-    seed = (seed * 1664525 + 1013904223) % 4294967296;
-    return seed / 4294967296;
+  if (month < 1 || month > 12 || day < 1 || day > 31) {
+    return null;
+  }
+
+  const utcDate = new Date(Date.UTC(year, month - 1, day));
+  const normalized = formatDayString(utcDate);
+  return normalized === value ? utcDate : null;
+};
+
+const getInitialDay = () => {
+  if (typeof window === "undefined") {
+    return formatDayString(new Date());
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const dayParam = params.get("day");
+  if (dayParam) {
+    const parsed = parseDayString(dayParam);
+    if (parsed) {
+      return formatDayString(parsed);
+    }
+  }
+
+  return formatDayString(new Date());
+};
+
+const getInitialQuestionIndex = () => {
+  if (typeof window === "undefined") {
+    return 0;
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const questionParam = Number.parseInt(params.get("question") ?? "", 10);
+  if (!Number.isFinite(questionParam)) {
+    return 0;
+  }
+
+  return Math.max(0, questionParam - 1);
+};
+
+const hashString = (value: string) => {
+  let hash = 0x811c9dc5;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+    hash >>>= 0;
+  }
+
+  return hash;
+};
+
+const createRandom = (seed: number) => {
+  let state = seed || 1;
+
+  return () => {
+    state += 0x6d2b79f5;
+    let t = Math.imul(state ^ (state >>> 15), 1 | state);
+    t ^= t + Math.imul(t ^ (t >>> 7), 61 | t);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
+};
 
-  // Fisher–Yates shuffle using our deterministic PRNG
+const dailyOrderCache = new Map<string, Entry[]>();
+
+const getDailyOrder = (day: string) => {
+  const cached = dailyOrderCache.get(day);
+  if (cached) {
+    return cached;
+  }
+
+  const seed = hashString(day);
+  const random = createRandom(seed);
   const arr = data.slice();
-  for (let i = arr.length - 1; i > 0; i--) {
+
+  for (let i = arr.length - 1; i > 0; i -= 1) {
     const j = Math.floor(random() * (i + 1));
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
 
+  dailyOrderCache.set(day, arr);
   return arr;
 };
 
 export default function Game() {
   const initialFilters = useMemo(() => parseFiltersFromQuery(), []);
-  const [questionKey, setQuestionKey] = useState(0);
-  const [entry, _setEntry] = useState<Entry | null>(null);
-  const setEntry = (_entry: typeof entry) => {
-    _setEntry(_entry);
-    setQuestionKey(Date.now());
-  };
+  const initialDay = useMemo(() => getInitialDay(), []);
+  const initialQuestionIndex = useMemo(() => getInitialQuestionIndex(), []);
   const [selectedTeams, setSelectedTeams] = useState<string[]>(
     initialFilters.teams
   );
@@ -197,72 +263,124 @@ export default function Game() {
   );
   const [isFirstStrings, setIsFirstStrings] = useState(initialFilters.firstStrings);
   const [, startTransition] = useTransition();
-  const usedPlayersByFilter = useRef<Map<string, Set<string>>>(new Map());
-
-  const filteredData = data.filter((candidate) => {
-    const matchesTeam =
-      selectedTeams.length === 0 || selectedTeams.includes(candidate.team);
-    const matchesPosition =
-      selectedPositions.length === 0 ||
-      selectedPositions.includes(candidate.position);
-    const matchesRating =
-      candidate.overallMaddenRating >= ratingRange[0] &&
-      candidate.overallMaddenRating <= ratingRange[1];
-    const highestRating = highestRatingByTeamPosition.get(
-      getTeamPositionKey(candidate)
-    );
-    const matchesFirstStrings =
-      !isFirstStrings ||
-      (highestRating !== undefined &&
-        candidate.overallMaddenRating === highestRating);
-
-    return (
-      matchesTeam && matchesPosition && matchesRating && matchesFirstStrings
-    );
+  const [currentDay, setCurrentDay] = useState(initialDay);
+  const [dayInput, setDayInput] = useState(initialDay);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(
+    initialQuestionIndex
+  );
+  const previousFiltersRef = useRef({
+    teams: initialFilters.teams,
+    positions: initialFilters.positions,
+    ratingRange: initialFilters.ratingRange,
+    firstStrings: initialFilters.firstStrings,
   });
 
-  const handleFetch = () => {
-    if (!hasMatches) {
-      setEntry(null);
-      return;
-    }
+  const dailyOrder = useMemo(() => getDailyOrder(currentDay), [currentDay]);
 
-    const filterKey = JSON.stringify({
-      teams: [...selectedTeams].sort(),
-      positions: [...selectedPositions].sort(),
-      ratingRange,
-      firstStrings: isFirstStrings,
+  const filteredData = useMemo(() => {
+    return dailyOrder.filter((candidate) => {
+      const matchesTeam =
+        selectedTeams.length === 0 || selectedTeams.includes(candidate.team);
+      const matchesPosition =
+        selectedPositions.length === 0 ||
+        selectedPositions.includes(candidate.position);
+      const matchesRating =
+        candidate.overallMaddenRating >= ratingRange[0] &&
+        candidate.overallMaddenRating <= ratingRange[1];
+      const highestRating = highestRatingByTeamPosition.get(
+        getTeamPositionKey(candidate)
+      );
+      const matchesFirstStrings =
+        !isFirstStrings ||
+        (highestRating !== undefined &&
+          candidate.overallMaddenRating === highestRating);
+
+      return (
+        matchesTeam && matchesPosition && matchesRating && matchesFirstStrings
+      );
     });
+  }, [
+    dailyOrder,
+    isFirstStrings,
+    ratingRange,
+    selectedPositions,
+    selectedTeams,
+  ]);
 
-    let usedPlayers = usedPlayersByFilter.current.get(filterKey);
-    if (!usedPlayers) {
-      usedPlayers = new Set<string>();
-      usedPlayersByFilter.current.set(filterKey, usedPlayers);
-    }
+  const hasMatches = filteredData.length > 0;
+  const currentEntry = filteredData[currentQuestionIndex] ?? null;
 
-    if (filteredData.length === 0) {
-      setEntry(null);
+  useEffect(() => {
+    if (!hasMatches) {
+      if (currentQuestionIndex !== 0) {
+        setCurrentQuestionIndex(0);
+      }
       return;
     }
 
-    const shuffledData = shuffle(filteredData);
+    if (currentQuestionIndex >= filteredData.length) {
+      setCurrentQuestionIndex(filteredData.length - 1);
+    }
+  }, [currentQuestionIndex, filteredData, hasMatches]);
 
-    let nextEntry = shuffledData.find(
-      (candidate) => !usedPlayers.has(candidate.playerName)
-    );
+  useEffect(() => {
+    const previousFilters = previousFiltersRef.current;
 
-    if (!nextEntry) {
-      usedPlayers.clear();
-      sessionLoops++;
-      nextEntry = shuffle(filteredData)[0] ?? null;
+    if (
+      previousFilters.teams !== selectedTeams ||
+      previousFilters.positions !== selectedPositions ||
+      previousFilters.ratingRange !== ratingRange ||
+      previousFilters.firstStrings !== isFirstStrings
+    ) {
+      previousFiltersRef.current = {
+        teams: selectedTeams,
+        positions: selectedPositions,
+        ratingRange,
+        firstStrings: isFirstStrings,
+      };
+      setCurrentQuestionIndex(0);
+    }
+  }, [isFirstStrings, ratingRange, selectedPositions, selectedTeams]);
+
+  const changeDay = (nextDay: string) => {
+    setCurrentDay(nextDay);
+    setDayInput(nextDay);
+    setCurrentQuestionIndex(0);
+  };
+
+  const shiftDay = (delta: number) => {
+    const parsed = parseDayString(currentDay);
+    if (!parsed) {
+      return;
     }
 
-    setEntry(nextEntry);
+    const shifted = new Date(parsed.getTime());
+    shifted.setUTCDate(shifted.getUTCDate() + delta);
+    changeDay(formatDayString(shifted));
+  };
 
-    if (nextEntry) {
-      usedPlayers.add(nextEntry.playerName);
+  const applyDayInput = () => {
+    const parsed = parseDayString(dayInput);
+    if (parsed) {
+      changeDay(formatDayString(parsed));
+    } else {
+      setDayInput(currentDay);
     }
   };
+
+  const handlePreviousQuestion = () => {
+    setCurrentQuestionIndex((index) => Math.max(0, index - 1));
+  };
+
+  const handleNextQuestion = () => {
+    setCurrentQuestionIndex((index) =>
+      Math.min(filteredData.length - 1, index + 1)
+    );
+  };
+
+  const canGoNext =
+    hasMatches && currentQuestionIndex < filteredData.length - 1;
+  const canGoPrevious = hasMatches && currentQuestionIndex > 0;
 
   const sortTeams = (teams: string[]) =>
     [...teams].sort((teamA, teamB) => teamA.localeCompare(teamB));
@@ -340,19 +458,67 @@ export default function Game() {
       params.delete("firstStrings");
     }
 
+    params.set("day", currentDay);
+
+    if (hasMatches && currentQuestionIndex > 0) {
+      params.set("question", (currentQuestionIndex + 1).toString());
+    } else {
+      params.delete("question");
+    }
+
     const nextSearch = params.toString();
     const nextUrl = `${window.location.pathname}${
       nextSearch ? `?${nextSearch}` : ""
     }${window.location.hash}`;
     window.history.replaceState(null, "", nextUrl);
-  }, [selectedTeams, selectedPositions, ratingRange, isFirstStrings]);
-
-  const hasMatches = filteredData.length > 0;
+  }, [
+    currentDay,
+    currentQuestionIndex,
+    hasMatches,
+    isFirstStrings,
+    ratingRange,
+    selectedPositions,
+    selectedTeams,
+  ]);
 
   return (
     <Group gap="lg" p="md" align="flex-start">
       <Stack gap="md">
         <Title order={2}>Filters</Title>
+        <Stack gap="xs">
+          <Text fw={500}>Day</Text>
+          <Group gap="xs" align="center">
+            <ActionIcon
+              variant="default"
+              aria-label="Previous day"
+              onClick={() => shiftDay(-1)}
+            >
+              ←
+            </ActionIcon>
+            <TextInput
+              value={dayInput}
+              onChange={(event) => setDayInput(event.currentTarget.value)}
+              onBlur={applyDayInput}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  applyDayInput();
+                }
+              }}
+              size="sm"
+              aria-label="Day (MM-DD-YYYY)"
+              w={140}
+              placeholder="MM-DD-YYYY"
+            />
+            <ActionIcon
+              variant="default"
+              aria-label="Next day"
+              onClick={() => shiftDay(1)}
+            >
+              →
+            </ActionIcon>
+          </Group>
+        </Stack>
         <MultiSelect
           data={TEAM_OPTIONS}
           label="Teams"
@@ -419,12 +585,37 @@ export default function Game() {
           checked={isFirstStrings}
           onChange={(event) => setIsFirstStrings(event.currentTarget.checked)}
         />
-        <Button disabled={!hasMatches} onClick={handleFetch}>
-          Fetch player
-        </Button>
+        <Group gap="xs" align="center">
+          <ActionIcon
+            variant="default"
+            aria-label="Previous question"
+            disabled={!canGoPrevious}
+            onClick={handlePreviousQuestion}
+          >
+            ←
+          </ActionIcon>
+          <Text size="sm">
+            {hasMatches
+              ? `Question ${currentQuestionIndex + 1} of ${filteredData.length}`
+              : "No available questions for the selected filters."}
+          </Text>
+          <ActionIcon
+            variant="default"
+            aria-label="Next question"
+            disabled={!canGoNext}
+            onClick={handleNextQuestion}
+          >
+            →
+          </ActionIcon>
+        </Group>
       </Stack>
 
-      {!entry ? null : <Question entry={entry} key={questionKey} />}
+      {!currentEntry ? null : (
+        <Question
+          entry={currentEntry}
+          key={`${currentDay}-${currentQuestionIndex}-${currentEntry.playerName}`}
+        />
+      )}
     </Group>
   );
 }
