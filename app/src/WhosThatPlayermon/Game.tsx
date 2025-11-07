@@ -67,6 +67,32 @@ const DIVISION_TEAMS: Record<string, string[]> = {
 const POSITION_OPTIONS = Array.from(
   new Set(data.map(({ position }) => position))
 ).sort();
+const POSITION_GROUPS: Record<string, string[]> = {
+  Offense: [
+    "Quarterback",
+    "Halfback",
+    "Fullback",
+    "Wide Receiver",
+    "Tight End",
+    "Left Tackle",
+    "Left Guard",
+    "Center",
+    "Right Guard",
+    "Right Tackle",
+  ],
+  Defense: [
+    "Left Edge",
+    "Right Edge",
+    "Defensive Tackle",
+    "Mike Backer",
+    "Sam Backer",
+    "Weak Backer",
+    "Cornerback",
+    "Free Safety",
+    "Strong Safety",
+  ],
+  "Special Teams": ["Kicker", "Punter", "Long Snapper"],
+};
 const MIN_RATING = data.length
   ? data.reduce(
       (min, entry) => Math.min(min, entry.overallMaddenRating),
@@ -383,9 +409,17 @@ export default function Game() {
 
   const sortTeams = (teams: string[]) =>
     [...teams].sort((teamA, teamB) => teamA.localeCompare(teamB));
+  const sortPositions = (positions: string[]) =>
+    [...positions].sort((positionA, positionB) =>
+      positionA.localeCompare(positionB)
+    );
 
   const handleTeamsChange = (teams: string[]) => {
     setSelectedTeams(sortTeams(teams));
+  };
+
+  const handlePositionsChange = (positions: string[]) => {
+    setSelectedPositions(sortPositions(positions));
   };
 
   const toggleDivision = (divisionName: string) => {
@@ -403,6 +437,28 @@ export default function Game() {
       }
 
       return sortTeams([...new Set([...currentTeams, ...divisionTeams])]);
+    });
+  };
+
+  const togglePositionGroup = (groupName: string) => {
+    const groupPositions = POSITION_GROUPS[groupName] ?? [];
+
+    setSelectedPositions((currentPositions) => {
+      const hasEntireGroup = groupPositions.every((position) =>
+        currentPositions.includes(position)
+      );
+
+      if (hasEntireGroup) {
+        return sortPositions(
+          currentPositions.filter((position) =>
+            !groupPositions.includes(position)
+          )
+        );
+      }
+
+      return sortPositions([
+        ...new Set([...currentPositions, ...groupPositions]),
+      ]);
     });
   };
 
@@ -559,12 +615,33 @@ export default function Game() {
           label="Positions"
           placeholder="Select positions"
           value={selectedPositions}
-          onChange={setSelectedPositions}
+          onChange={handlePositionsChange}
           searchable
           clearable
           nothingFoundMessage="No matching positions"
           checkIconPosition="right"
         />
+        <Stack gap="xs">
+          <Text fw={500}>Position groups</Text>
+          <Group gap="xs">
+            {Object.entries(POSITION_GROUPS).map(([groupName, positions]) => {
+              const isSelected = positions.every((position) =>
+                selectedPositions.includes(position)
+              );
+
+              return (
+                <Button
+                  key={groupName}
+                  variant={isSelected ? "filled" : "outline"}
+                  onClick={() => togglePositionGroup(groupName)}
+                  size="xs"
+                >
+                  {groupName}
+                </Button>
+              );
+            })}
+          </Group>
+        </Stack>
         <Stack gap="xs">
           <Text fw={500}>Rating range</Text>
           <RangeSlider
