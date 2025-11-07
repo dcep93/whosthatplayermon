@@ -186,9 +186,6 @@ export default function Question(props: { entry: Entry }) {
       <Card withBorder padding="lg" radius="md">
         <Stack gap="md">
           <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
-            {shouldRevealDetails ? (
-              <Detail label="Player" value={props.entry.playerName} />
-            ) : null}
             <Detail label="Team" value={props.entry.team} />
             <Detail label="Position" value={props.entry.position} />
             <Detail
@@ -272,6 +269,24 @@ export default function Question(props: { entry: Entry }) {
                   radius="md"
                   style={{ position: "absolute", inset: 0 }}
                 />
+              ) : null}
+              {shouldRevealDetails ? (
+                <Text
+                  fw={600}
+                  size="lg"
+                  style={{
+                    position: "absolute",
+                    bottom: "var(--mantine-spacing-sm, 0.75rem)",
+                    right: "var(--mantine-spacing-sm, 0.75rem)",
+                    backgroundColor: "rgba(2, 6, 23, 0.75)",
+                    padding: "0.25rem 0.5rem",
+                    borderRadius: "0.5rem",
+                    textAlign: "right",
+                    textShadow: "0 2px 6px rgba(0, 0, 0, 0.7)",
+                  }}
+                >
+                  {props.entry.playerName}
+                </Text>
               ) : null}
             </Box>
             {!imgSrc ? (
