@@ -11,7 +11,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { type ReactNode } from "react";
 import { data, type Entry } from "./Data";
-import fetchPic from "./fetchPic";
+import fetchPic, { FALLBACK_IMAGE_SRC } from "./fetchPic";
 
 const IMG_WIDTH_PX = 300;
 const IMG_HEIGHT_PX = 300;
@@ -251,6 +251,14 @@ export default function Question(props: { entry: Entry }) {
               {imgSrc ? (
                 <img
                   onLoad={() => updateImgLoaded(true)}
+                  onError={() => {
+                    if (imgSrc && imgSrc !== FALLBACK_IMAGE_SRC) {
+                      updateImgSrc(FALLBACK_IMAGE_SRC);
+                      return;
+                    }
+
+                    updateImgLoaded(true);
+                  }}
                   alt="Player portrait"
                   src={imgSrc}
                   style={{
@@ -260,6 +268,8 @@ export default function Question(props: { entry: Entry }) {
                     filter: `blur(${blur}px)`,
                     willChange: "filter",
                     transform: "translateZ(0)",
+                    position: "relative",
+                    zIndex: 1,
                   }}
                   decoding="async"
                   loading="lazy"

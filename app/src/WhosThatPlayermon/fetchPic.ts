@@ -41,6 +41,8 @@ const pickBestImage = (player: Player) => {
   return url ?? null;
 };
 
+export const FALLBACK_IMAGE_SRC = "/silhouette-icon.svg";
+
 export default function fetchPic(entry: Entry) {
   const apiKey = "123"; // replace with your free key or premium key
   const url = `https://www.thesportsdb.com/api/v1/json/${apiKey}/searchplayers.php?p=${encodeURIComponent(
@@ -74,5 +76,9 @@ export default function fetchPic(entry: Entry) {
       }
 
       return image;
+    })
+    .catch((error) => {
+      console.error("Failed to fetch player image", error);
+      return FALLBACK_IMAGE_SRC;
     });
 }
