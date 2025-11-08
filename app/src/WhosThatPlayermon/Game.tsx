@@ -120,7 +120,12 @@ for (const entry of data) {
 }
 
 const parseListParam = (value: string | null) =>
-  value ? value.split(",").map((item) => item.trim()).filter(Boolean) : [];
+  value
+    ? value
+        .split(/[.,]/)
+        .map((item) => item.trim())
+        .filter(Boolean)
+    : [];
 
 const clampRating = (value: number) =>
   Math.max(MIN_RATING, Math.min(value, MAX_RATING));
@@ -484,13 +489,13 @@ export default function Game() {
     const params = new URLSearchParams(window.location.search);
 
     if (selectedTeams.length > 0) {
-      params.set("teams", selectedTeams.join(","));
+      params.set("teams", selectedTeams.join("."));
     } else {
       params.delete("teams");
     }
 
     if (selectedPositions.length > 0) {
-      params.set("positions", selectedPositions.join(","));
+      params.set("positions", selectedPositions.join("."));
     } else {
       params.delete("positions");
     }
