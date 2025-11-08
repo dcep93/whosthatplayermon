@@ -542,7 +542,40 @@ export default function Game() {
   ]);
 
   return (
-    <Group gap="lg" p="md" align="flex-start">
+    <Stack gap="lg" p="md">
+      <Stack gap="md">
+        <Group gap="xs" align="center">
+          <ActionIcon
+            variant="default"
+            aria-label="Previous question"
+            disabled={!canGoPrevious}
+            onClick={handlePreviousQuestion}
+          >
+            ←
+          </ActionIcon>
+          <Text size="sm">
+            {hasMatches
+              ? `${currentQuestionIndex + 1} / ${filteredData.length}`
+              : "No available questions for the selected filters."}
+          </Text>
+          <ActionIcon
+            variant="default"
+            aria-label="Next question"
+            disabled={!canGoNext}
+            onClick={handleNextQuestion}
+          >
+            →
+          </ActionIcon>
+        </Group>
+
+        {!currentEntry ? null : (
+          <Question
+            entry={currentEntry}
+            key={`${currentDay}-${currentQuestionIndex}-${currentEntry.playerName}`}
+          />
+        )}
+      </Stack>
+
       <Stack gap="md">
         <Stack gap="xs">
           <Text fw={500}>Day</Text>
@@ -669,37 +702,7 @@ export default function Game() {
           checked={isFirstStrings}
           onChange={(event) => setIsFirstStrings(event.currentTarget.checked)}
         />
-        <Group gap="xs" align="center">
-          <ActionIcon
-            variant="default"
-            aria-label="Previous question"
-            disabled={!canGoPrevious}
-            onClick={handlePreviousQuestion}
-          >
-            ←
-          </ActionIcon>
-          <Text size="sm">
-            {hasMatches
-              ? `${currentQuestionIndex + 1} / ${filteredData.length}`
-              : "No available questions for the selected filters."}
-          </Text>
-          <ActionIcon
-            variant="default"
-            aria-label="Next question"
-            disabled={!canGoNext}
-            onClick={handleNextQuestion}
-          >
-            →
-          </ActionIcon>
-        </Group>
       </Stack>
-
-      {!currentEntry ? null : (
-        <Question
-          entry={currentEntry}
-          key={`${currentDay}-${currentQuestionIndex}-${currentEntry.playerName}`}
-        />
-      )}
-    </Group>
+    </Stack>
   );
 }
