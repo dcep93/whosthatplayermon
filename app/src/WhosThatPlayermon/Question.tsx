@@ -1,13 +1,4 @@
-import {
-  Box,
-  Button,
-  Card,
-  Select,
-  SimpleGrid,
-  Skeleton,
-  Stack,
-  Text,
-} from "@mantine/core";
+import { Box, Button, Card, Select, Skeleton, Stack, Text } from "@mantine/core";
 import { useEffect, useMemo, useState } from "react";
 import { type ReactNode } from "react";
 import { data, type Entry } from "./Data";
@@ -24,13 +15,6 @@ const PLAYER_NAME_OPTIONS = Array.from(
   .sort((a, b) => a.localeCompare(b))
   .map((playerName) => ({ value: playerName, label: playerName }));
 
-const formatPositionWithJerseyNumber = (
-  entry: Pick<Entry, "position" | "jerseyNum">
-) => {
-  const { jerseyNum, position } = entry;
-  return jerseyNum ? `${position} (#${jerseyNum})` : position;
-};
-
 function Detail(props: { label: string; value: ReactNode }) {
   const { label, value } = props;
 
@@ -43,6 +27,9 @@ function Detail(props: { label: string; value: ReactNode }) {
     </Stack>
   );
 }
+
+const formatJerseyNumber = (value: Entry["jerseyNum"]) =>
+  Number.isFinite(value) ? `#${value}` : "—";
 
 export default function Question(props: { entry: Entry }) {
   const [imgSrc, updateImgSrc] = useState<string | null>(null);
@@ -192,11 +179,12 @@ export default function Question(props: { entry: Entry }) {
     <Stack gap="lg">
       <Card withBorder padding="lg" radius="md">
         <Stack gap="md">
-          <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
+          <Stack gap="sm">
             <Detail label="Team" value={props.entry.team} />
+            <Detail label="Position" value={props.entry.position} />
             <Detail
-              label="Position"
-              value={formatPositionWithJerseyNumber(props.entry)}
+              label="Jersey number"
+              value={formatJerseyNumber(props.entry.jerseyNum)}
             />
             <Detail
               label="Overall rating"
@@ -205,23 +193,24 @@ export default function Question(props: { entry: Entry }) {
             {shouldRevealDetails ? (
               <Detail label="Player name" value={props.entry.playerName} />
             ) : null}
-          </SimpleGrid>
+          </Stack>
           {guess ? (
             <Stack gap={4}>
               <Text fw={500}>Your guess</Text>
               <Text>{guessedEntry?.playerName ?? guess}</Text>
               {shouldShowGuessDetails && guessedEntry ? (
-                <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="sm">
+                <Stack gap="sm">
                   <Detail label="Team" value={guessedEntry.team} />
+                  <Detail label="Position" value={guessedEntry.position} />
                   <Detail
-                    label="Position"
-                    value={formatPositionWithJerseyNumber(guessedEntry)}
+                    label="Jersey number"
+                    value={formatJerseyNumber(guessedEntry.jerseyNum)}
                   />
                   <Detail
                     label="Overall rating"
                     value={guessedEntry.overallMaddenRating}
                   />
-                </SimpleGrid>
+                </Stack>
               ) : guessedMessage ? (
                 <Text size="sm" c="dimmed">
                   {guessedMessage}
