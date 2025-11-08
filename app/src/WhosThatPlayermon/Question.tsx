@@ -24,6 +24,13 @@ const PLAYER_NAME_OPTIONS = Array.from(
   .sort((a, b) => a.localeCompare(b))
   .map((playerName) => ({ value: playerName, label: playerName }));
 
+const formatPositionWithJerseyNumber = (
+  entry: Pick<Entry, "position" | "jerseyNum">
+) => {
+  const { jerseyNum, position } = entry;
+  return jerseyNum ? `${position} (#${jerseyNum})` : position;
+};
+
 function Detail(props: { label: string; value: ReactNode }) {
   const { label, value } = props;
 
@@ -187,7 +194,10 @@ export default function Question(props: { entry: Entry }) {
         <Stack gap="md">
           <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
             <Detail label="Team" value={props.entry.team} />
-            <Detail label="Position" value={props.entry.position} />
+            <Detail
+              label="Position"
+              value={formatPositionWithJerseyNumber(props.entry)}
+            />
             <Detail
               label="Overall rating"
               value={props.entry.overallMaddenRating}
@@ -203,7 +213,10 @@ export default function Question(props: { entry: Entry }) {
               {shouldShowGuessDetails && guessedEntry ? (
                 <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="sm">
                   <Detail label="Team" value={guessedEntry.team} />
-                  <Detail label="Position" value={guessedEntry.position} />
+                  <Detail
+                    label="Position"
+                    value={formatPositionWithJerseyNumber(guessedEntry)}
+                  />
                   <Detail
                     label="Overall rating"
                     value={guessedEntry.overallMaddenRating}
