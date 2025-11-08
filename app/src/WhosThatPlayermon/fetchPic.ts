@@ -1,84 +1,126 @@
 import type { Entry } from "./Data";
 
-type Player = {
-  strThumb?: string | null;
-  strCutout?: string | null;
-  strSport?: string | null;
-  strLeague?: string | null;
-  strTeam?: string | null;
-  strTeam2?: string | null;
-  [key: string]: unknown;
+type GuardianFields = {
+  thumbnail?: string;
+  trailText?: string;
 };
 
-const isAmericanFootball = (player: Player) =>
-  player.strSport?.toLowerCase() === "american football";
-
-const isNFLLeague = (player: Player) => {
-  const league = player.strLeague?.toLowerCase();
-  return league?.includes("nfl") ?? false;
+type GuardianResult = {
+  webTitle?: string;
+  webPublicationDate?: string;
+  fields?: GuardianFields;
 };
 
-const matchesTeam = (player: Player, entry: Entry) => {
-  const entryTeam = entry.team.toLowerCase();
-  const teams = [player.strTeam, player.strTeam2]
-    .filter((team): team is string => Boolean(team))
-    .map((team) => team.toLowerCase());
-
-  return teams.some(
-    (team) => entryTeam.includes(team) || team.includes(entryTeam)
-  );
+type GuardianResponse = {
+  response?: {
+    results?: GuardianResult[];
+  };
 };
 
-const pickBestImage = (player: Player) => {
-  if (player.strThumb) return player.strThumb;
-  if (player.strCutout) return player.strCutout;
+type Candidate = {
+  url: string;
+  score: number;
+  published?: number;
+};
 
-  const url = Object.values(player).find(
-    (value): value is string =>
-      typeof value === "string" && value.startsWith("https://")
-  );
-
-  return url ?? null;
+const GUARDIAN_ENDPOINT = "https://content.guardianapis.com/search";
+const GUARDIAN_API_KEY = "test"; // public test key documented by The Guardian
+const DEFAULT_PARAMS: Record<string, string> = {
+  section: "sport",
+  "api-key": GUARDIAN_API_KEY,
+  "show-fields": "thumbnail,trailText",
+  "order-by": "relevance",
+  "page-size": "12",
 };
 
 export const FALLBACK_IMAGE_SRC = "/silhouette-icon.svg";
 
-export default function fetchPic(entry: Entry) {
-  const apiKey = "123"; // replace with your free key or premium key
-  const url = `https://www.thesportsdb.com/api/v1/json/${apiKey}/searchplayers.php?p=${encodeURIComponent(
-    entry.playerName
-  )}`;
+const stripHtml = (value: string) => value.replace(/<[^>]*>/g, " ");
 
-  return fetch(url)
-    .then((res) => {
-      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-      return res.json();
-    })
-    .then((data) => {
-      console.log(data);
-      if (!Array.isArray(data.player) || data.player.length === 0) {
-        throw new Error("No player found");
-      }
+const normalize = (value: string) => value.toLowerCase();
 
-      const players = data.player as Player[];
-      const nflPlayers = players.filter(
-        (player) =>
-          isAmericanFootball(player) ||
-          isNFLLeague(player) ||
-          matchesTeam(player, entry)
-      );
+const buildSearchText = (result: GuardianResult) =>
+  [result.webTitle, result.fields?.trailText]
+    .filter((part): part is string => Boolean(part))
+    .map(stripHtml)
+    .map(normalize)
+    .join(" ");
 
-      const player = (nflPlayers[0] ?? players[0]) as Player;
-      const image = pickBestImage(player);
+const enlargeGuardianThumbnail = (url: string) =>
+  /\/\d+\.jpg$/i.test(url) ? url.replace(/\/\d+\.jpg$/i, "/1000.jpg") : url;
 
-      if (!image) {
-        throw new Error("No image found");
-      }
+const createCandidate = (result: GuardianResult, entry: Entry): Candidate | null => {
+  const thumbnail = result.fields?.thumbnail;
+  if (!thumbnail) return null;
 
-      return image;
-    })
-    .catch((error) => {
-      console.error("Failed to fetch player image", error);
-      return FALLBACK_IMAGE_SRC;
-    });
+  const text = buildSearchText(result);
+  const tokens = normalize(entry.playerName).split(/\s+/).filter(Boolean);
+  const firstName = tokens[0];
+  const lastName = tokens.at(-1);
+  const teamTokens = normalize(entry.team)
+    .split(/\s+/)
+    .filter((word) => word.length > 2 && word !== "football" && word !== "team");
+
+  let score = 0;
+  if (text.includes("nfl")) score += 0.5;
+  if (lastName && text.includes(lastName)) score += 4;
+  if (firstName && text.includes(firstName)) score += 1;
+  for (const token of teamTokens) {
+    if (text.includes(token)) score += 0.75;
+  }
+
+  const published = result.webPublicationDate
+    ? Date.parse(result.webPublicationDate)
+    : undefined;
+
+  return {
+    url: enlargeGuardianThumbnail(thumbnail),
+    score,
+    published: Number.isNaN(published) ? undefined : published,
+  };
+};
+
+const sortCandidates = (a: Candidate, b: Candidate) => {
+  if (b.score !== a.score) return b.score - a.score;
+  return (b.published ?? 0) - (a.published ?? 0);
+};
+
+const fetchGuardianImage = async (entry: Entry, query: string) => {
+  const params = new URLSearchParams(DEFAULT_PARAMS);
+  params.set("q", query);
+
+  const response = await fetch(`${GUARDIAN_ENDPOINT}?${params.toString()}`);
+  if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+
+  const json = (await response.json()) as GuardianResponse;
+  const results = json.response?.results ?? [];
+
+  const candidates = results
+    .map((result) => createCandidate(result, entry))
+    .filter((candidate): candidate is Candidate => Boolean(candidate));
+
+  if (candidates.length === 0) return null;
+
+  candidates.sort(sortCandidates);
+  return candidates[0]?.url ?? null;
+};
+
+export default async function fetchPic(entry: Entry) {
+  const queries = [
+    `${entry.playerName} ${entry.team} nfl`,
+    `${entry.playerName} ${entry.team}`,
+    `${entry.playerName} nfl`,
+    entry.playerName,
+  ];
+
+  for (const query of queries) {
+    try {
+      const image = await fetchGuardianImage(entry, query);
+      if (image) return image;
+    } catch (error) {
+      console.error("Guardian API request failed", error);
+    }
+  }
+
+  return FALLBACK_IMAGE_SRC;
 }
