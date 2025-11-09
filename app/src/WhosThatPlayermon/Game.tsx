@@ -67,6 +67,11 @@ const DIVISION_TEAMS: Record<string, string[]> = {
 const POSITION_OPTIONS = Array.from(
   new Set(data.map(({ position }) => position))
 ).sort();
+const COACH_POSITIONS = [
+  "head coach",
+  "offensive coordinator",
+  "defensive coordinator",
+];
 const POSITION_GROUPS: Record<string, string[]> = {
   Offense: [
     "Quarterback",
@@ -92,6 +97,7 @@ const POSITION_GROUPS: Record<string, string[]> = {
     "Strong Safety",
   ],
   "Special Teams": ["Kicker", "Punter", "Long Snapper"],
+  Coaching: COACH_POSITIONS,
 };
 const MIN_RATING = data.length
   ? data.reduce(
@@ -427,6 +433,34 @@ export default function Game() {
     setSelectedPositions(sortPositions(positions));
   };
 
+  const areCoachPositionsSelected = COACH_POSITIONS.every((position) =>
+    selectedPositions.includes(position)
+  );
+
+  const handleCoachQuickSelect = () => {
+    setSelectedPositions((currentPositions) => {
+      const hasAll = COACH_POSITIONS.every((position) =>
+        currentPositions.includes(position)
+      );
+
+      if (hasAll) {
+        return sortPositions(
+          currentPositions.filter(
+            (position) => !COACH_POSITIONS.includes(position)
+          )
+        );
+      }
+
+      return sortPositions([
+        ...new Set([...currentPositions, ...COACH_POSITIONS]),
+      ]);
+    });
+  };
+
+  const handleResetPositions = () => {
+    setSelectedPositions([]);
+  };
+
   const toggleDivision = (divisionName: string) => {
     const divisionTeams = DIVISION_TEAMS[divisionName] ?? [];
 
@@ -659,6 +693,25 @@ export default function Game() {
           nothingFoundMessage="No matching positions"
           checkIconPosition="right"
         />
+        <Stack gap="xs">
+          <Text fw={500}>Quick select</Text>
+          <Group gap="xs">
+            <Button
+              size="xs"
+              variant={areCoachPositionsSelected ? "filled" : "outline"}
+              onClick={handleCoachQuickSelect}
+            >
+              Coaches
+            </Button>
+            <Button
+              size="xs"
+              variant={selectedPositions.length === 0 ? "filled" : "outline"}
+              onClick={handleResetPositions}
+            >
+              All positions
+            </Button>
+          </Group>
+        </Stack>
         <Stack gap="xs">
           <Text fw={500}>Position groups</Text>
           <Group gap="xs">
