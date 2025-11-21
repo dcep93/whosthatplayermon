@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-# npm create vite@latest app -- --template react-ts --skip-questions
+# npm create vite@latest app -- --template react-ts
 
 cd app
 npm install
